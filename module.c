@@ -1,3 +1,4 @@
+#define PY_SSIZE_T_CLEAN
 #include <python3.13/Python.h>
 
 static PyObject *test(PyObject *self,
@@ -27,6 +28,6 @@ static PyModuleDef module = {
     .m_methods = methods,
 };
 
-PyMODINIT_FUNC PyInit_test(void) {
+PyMODINIT_FUNC PyInit_test() {
     return PyModuleDef_Init(&module);
 }
