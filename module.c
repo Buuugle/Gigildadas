@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 
+
 static PyObject *test(PyObject *self,
                       PyObject *args) {
     int x;
@@ -20,7 +21,7 @@ static PyMethodDef methods[] = {
         .ml_flags = METH_VARARGS,
         .ml_doc = PyDoc_STR("Je test")
     },
-    {NULL, NULL, 0, NULL}
+    {NULL}
 };
 
 typedef struct {
@@ -66,18 +67,42 @@ static int Test_init(TestObject *self,
 
 static PyMemberDef Test_members[] = {
     {
-        .name = "name",
-        .type = Py_T_OBJECT_EX,
-        .offset = offsetof(TestObject, name),
-        .flags = 0,
-        .doc = PyDoc_STR("Name test")
-    },
-    {
         .name = "number",
         .type = Py_T_INT,
         .offset = offsetof(TestObject, number),
         .flags = 0,
         .doc = PyDoc_STR("Number test")
+    },
+    {NULL}
+};
+
+static PyObject *Test_get_name(const TestObject *self,
+                               void *closure) {
+    return Py_NewRef(self->name);
+}
+
+static int Test_set_name(TestObject *self,
+                         PyObject *value,
+                         void *closure) {
+    if (value == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Cannot delete name");
+        return -1;
+    }
+    if (!PyUnicode_Check(value)) {
+        PyErr_SetString(PyExc_ValueError, "Test value is not a string");
+        return -1;
+    }
+    Py_SETREF(self->name, Py_NewRef(value));
+    return 0;
+}
+
+static PyGetSetDef Test_getsets[] = {
+    {
+        .name = "name",
+        .get = (getter) Test_get_name,
+        .set = (setter) Test_set_name,
+        .doc = PyDoc_STR("Set name"),
+        .closure = NULL
     },
     {NULL}
 };
@@ -99,12 +124,12 @@ static PyObject *Test_display(const TestObject *self,
 
 static PyMethodDef Test_methods[] = {
     {
-        .ml_name = "salut",
+        .ml_name = "display",
         .ml_meth = (PyCFunction) Test_display,
         .ml_flags = METH_VARARGS,
         .ml_doc = PyDoc_STR("Test display")
     },
-    {NULL, NULL, 0, NULL}
+    {NULL}
 };
 
 static PyTypeObject TestType = {
@@ -119,6 +144,7 @@ static PyTypeObject TestType = {
     .tp_dealloc = (destructor) Test_dealloc,
     .tp_members = Test_members,
     .tp_methods = Test_methods,
+    .tp_getset = Test_getsets
 };
 
 static int exec(PyObject *module) {
@@ -153,7 +179,6 @@ static PyModuleDef module = {
     .m_methods = methods,
     .m_slots = slots
 };
-
 
 PyMODINIT_FUNC PyInit_test() {
     return PyModuleDef_Init(&module);
