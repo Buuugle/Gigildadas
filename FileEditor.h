@@ -10,15 +10,16 @@
 
 struct EntryDescriptor {
     char identifier[WORD_LENGTH];
-    int descriptor_version;
+    int version;
     int section_count;
     long entry_length;
-    long data_address_offset;
+    long data_address;
     long data_length;
-    long descriptor_number;
+    long number;
     int *section_identifiers;
     long *section_lengths;
-    long section_address_offsets;
+    long *section_addresses;
+    float *data;
 };
 
 struct EntryHeader {
@@ -69,7 +70,6 @@ typedef struct FileEditor {
     struct FileHeader file_header;
     struct EntryHeader *entry_headers;
     struct EntryDescriptor *entry_descriptors;
-    float **data;
     // TODO: Sections
 } FileEditor;
 
@@ -83,5 +83,8 @@ int FileEditor_init(FileEditor *self,
                     PyObject *args,
                     PyObject *kwargs);
 
-PyObject *FileEditor_read_entry_headers(FileEditor *self,
-                                        PyObject *Py_UNUSED(ignored));
+PyObject *FileEditor_read_entries(FileEditor *self,
+                                  PyObject *Py_UNUSED(ignored));
+
+PyObject *FileEditor_read_data(FileEditor *self,
+                               PyObject *Py_UNUSED(ignored));
