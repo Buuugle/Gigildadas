@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.31)
-project(PythonClassReader C)
+project(PythonClassEditor C)
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
 
 add_library(${PROJECT_NAME} SHARED
-        module.c
+        Module.c
+        FileEditor.c
 )
 
-set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "test")
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "classeditor")
