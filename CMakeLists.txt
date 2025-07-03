@@ -7,7 +7,7 @@ set(CMAKE_SHARED_LIBRARY_PREFIX "")
 add_library(${PROJECT_NAME} SHARED
         Module.c
         ContainerObject.c
-        HeaderObject.c
+        EntryObject.c
         Utils.c
 )
 

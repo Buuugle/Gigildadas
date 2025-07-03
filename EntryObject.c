@@ -1,15 +1,18 @@
 #include <stddef.h>
 
-#include "HeaderObject.h"
+#include "EntryObject.h"
 
 
-void Header_dealloc(HeaderObject *self) {
+void Entry_dealloc(EntryObject *self) {
+    PyMem_Free(self->section_identifiers);
+    PyMem_Free(self->section_lengths);
+    PyMem_Free(self->section_addresses);
     Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
-int Header_set_source(HeaderObject *self,
-                      PyObject *value,
-                      void *closure) {
+int Entry_set_source(EntryObject *self,
+                     PyObject *value,
+                     void *closure) {
     if (!value) {
         PyErr_SetString(PyExc_TypeError, "Cannot delete source");
         return -1;
@@ -34,14 +37,14 @@ int Header_set_source(HeaderObject *self,
     return 0;
 }
 
-PyObject *Header_get_source(const HeaderObject *self,
-                            void *closure) {
+PyObject *Entry_get_source(const EntryObject *self,
+                           void *closure) {
     return unicode_from_chars(self->source, sizeof(self->source));
 }
 
-int Header_set_line(HeaderObject *self,
-                    PyObject *value,
-                    void *closure) {
+int Entry_set_line(EntryObject *self,
+                   PyObject *value,
+                   void *closure) {
     if (!value) {
         PyErr_SetString(PyExc_TypeError, "Cannot delete line");
         return -1;
@@ -65,14 +68,14 @@ int Header_set_line(HeaderObject *self,
     return 0;
 }
 
-PyObject *Header_get_line(const HeaderObject *self,
-                          void *closure) {
+PyObject *Entry_get_line(const EntryObject *self,
+                         void *closure) {
     return unicode_from_chars(self->line, sizeof(self->line));
 }
 
-int Header_set_telescope(HeaderObject *self,
-                         PyObject *value,
-                         void *closure) {
+int Entry_set_telescope(EntryObject *self,
+                        PyObject *value,
+                        void *closure) {
     if (!value) {
         PyErr_SetString(PyExc_TypeError, "Cannot delete telescope");
         return -1;
@@ -96,102 +99,102 @@ int Header_set_telescope(HeaderObject *self,
     return 0;
 }
 
-PyObject *Header_get_telescope(const HeaderObject *self,
-                               void *closure) {
+PyObject *Entry_get_telescope(const EntryObject *self,
+                              void *closure) {
     return unicode_from_chars(self->telescope, sizeof(self->telescope));
 }
 
-PyMemberDef Header_members[] = {
+PyMemberDef Entry_members[] = {
     {
         .name = "number",
         .type = Py_T_LONG,
-        .offset = offsetof(HeaderObject, number)
+        .offset = offsetof(EntryObject, number)
     },
     {
         .name = "version",
         .type = Py_T_INT,
-        .offset = offsetof(HeaderObject, version)
+        .offset = offsetof(EntryObject, version)
     },
     {
         .name = "observation_date",
         .type = Py_T_INT,
-        .offset = offsetof(HeaderObject, observation_date)
+        .offset = offsetof(EntryObject, observation_date)
     },
     {
         .name = "reduction_date",
         .type = Py_T_INT,
-        .offset = offsetof(HeaderObject, reduction_date)
+        .offset = offsetof(EntryObject, reduction_date)
     },
     {
         .name = "lambda_offset",
         .type = Py_T_FLOAT,
-        .offset = offsetof(HeaderObject, lambda_offset)
+        .offset = offsetof(EntryObject, lambda_offset)
     },
     {
         .name = "beta_offset",
         .type = Py_T_FLOAT,
-        .offset = offsetof(HeaderObject, beta_offset)
+        .offset = offsetof(EntryObject, beta_offset)
     },
     {
         .name = "coordinate_system",
         .type = Py_T_INT,
-        .offset = offsetof(HeaderObject, coordinate_system)
+        .offset = offsetof(EntryObject, coordinate_system)
     },
     {
         .name = "kind",
         .type = Py_T_INT,
-        .offset = offsetof(HeaderObject, kind)
+        .offset = offsetof(EntryObject, kind)
     },
     {
         .name = "quality",
         .type = Py_T_INT,
-        .offset = offsetof(HeaderObject, quality)
+        .offset = offsetof(EntryObject, quality)
     },
     {
         .name = "position_angle",
         .type = Py_T_FLOAT,
-        .offset = offsetof(HeaderObject, position_angle)
+        .offset = offsetof(EntryObject, position_angle)
     },
     {
         .name = "scan",
         .type = Py_T_LONG,
-        .offset = offsetof(HeaderObject, scan)
+        .offset = offsetof(EntryObject, scan)
     },
     {
         .name = "sub_scan",
         .type = Py_T_INT,
-        .offset = offsetof(HeaderObject, sub_scan)
+        .offset = offsetof(EntryObject, sub_scan)
     },
     {NULL}
 };
 
-PyGetSetDef Header_getset[] = {
+PyGetSetDef Entry_getset[] = {
     {
         .name = "source",
-        .get = (getter) Header_get_source,
-        .set = (setter) Header_set_source
+        .get = (getter) Entry_get_source,
+        .set = (setter) Entry_set_source
     },
     {
         .name = "line",
-        .get = (getter) Header_get_line,
-        .set = (setter) Header_set_line
+        .get = (getter) Entry_get_line,
+        .set = (setter) Entry_set_line
     },
     {
         .name = "telescope",
-        .get = (getter) Header_get_telescope,
-        .set = (setter) Header_set_telescope
+        .get = (getter) Entry_get_telescope,
+        .set = (setter) Entry_set_telescope
     },
     {NULL}
 };
 
-PyTypeObject HeaderType = {
+PyTypeObject EntryType = {
     .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "Header",
-    .tp_basicsize = sizeof(HeaderObject),
+    .tp_name = "Entry",
+    .tp_basicsize = sizeof(EntryObject),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_new = PyType_GenericNew,
-    .tp_dealloc = (destructor) Header_dealloc,
-    .tp_members = Header_members,
-    .tp_getset = Header_getset
+    .tp_dealloc = (destructor) Entry_dealloc,
+    .tp_members = Entry_members,
+    .tp_getset = Entry_getset
 };

@@ -1,7 +1,7 @@
 #include <python3.13/Python.h>
 
 #include  "ContainerObject.h"
-#include "HeaderObject.h"
+#include "EntryObject.h"
 
 
 static int exec(PyObject *module) {
@@ -12,10 +12,10 @@ static int exec(PyObject *module) {
         return -1;
     }
 
-    if (PyType_Ready(&HeaderType) < 0) {
+    if (PyType_Ready(&EntryType) < 0) {
         return -1;
     }
-    if (PyModule_AddObjectRef(module, "Header", (PyObject *) &HeaderType) < 0) {
+    if (PyModule_AddObjectRef(module, "Header", (PyObject *) &EntryType) < 0) {
         return -1;
     }
 

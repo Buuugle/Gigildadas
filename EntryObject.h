@@ -7,7 +7,7 @@
 
 #pragma pack(1)
 
-typedef struct HeaderObject {
+typedef struct EntryObject {
     PyObject_HEAD
 
     long descriptor_record;
@@ -38,36 +38,36 @@ typedef struct HeaderObject {
     int *section_identifiers;
     long *section_lengths;
     long *section_addresses;
-} HeaderObject;
+} EntryObject;
 
 #pragma pack()
 
-void Header_dealloc(HeaderObject *self);
+void Entry_dealloc(EntryObject *self);
 
-int Header_set_source(HeaderObject *self,
+int Entry_set_source(EntryObject *self,
                       PyObject *value,
                       void *closure);
 
-PyObject *Header_get_source(const HeaderObject *self,
+PyObject *Entry_get_source(const EntryObject *self,
                             void *closure);
 
-int Header_set_line(HeaderObject *self,
+int Entry_set_line(EntryObject *self,
                     PyObject *value,
                     void *closure);
 
-PyObject *Header_get_line(const HeaderObject *self,
+PyObject *Entry_get_line(const EntryObject *self,
                           void *closure);
 
 
-int Header_set_telescope(HeaderObject *self,
+int Entry_set_telescope(EntryObject *self,
                          PyObject *value,
                          void *closure);
 
-PyObject *Header_get_telescope(const HeaderObject *self,
+PyObject *Entry_get_telescope(const EntryObject *self,
                                void *closure);
 
-extern PyMemberDef Header_members[];
+extern PyMemberDef Entry_members[];
 
-extern PyGetSetDef Header_getset[];
+extern PyGetSetDef Entry_getset[];
 
-extern PyTypeObject HeaderType;
+extern PyTypeObject EntryType;

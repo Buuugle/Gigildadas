@@ -2,27 +2,9 @@
 
 #include "ContainerObject.h"
 
-#include "HeaderObject.h"
+#include "EntryObject.h"
 #include "Utils.h"
 
-
-static void free_entry_descriptors_content(struct EntryDescriptor *entry_descriptors,
-                                           const long entry_count) {
-    if (!entry_descriptors) {
-        return;
-    }
-    for (int i = 0; i < entry_count; ++i) {
-        struct EntryDescriptor *descriptor = entry_descriptors + i;
-        free(descriptor->section_identifiers);
-        descriptor->section_identifiers = NULL;
-        free(descriptor->section_lengths);
-        descriptor->section_lengths = NULL;
-        free(descriptor->section_addresses);
-        descriptor->section_addresses = NULL;
-        free(descriptor->data);
-        descriptor->data = NULL;
-    }
-}
 
 int Container_traverse(ContainerObject *self,
                        visitproc visit,
@@ -42,14 +24,9 @@ int Container_clear(ContainerObject *self) {
     self->output_file = NULL;
 
     struct FileHeader *file_header = &self->file_header;
-    const long entry_count = file_header->next_entry - 1;
 
-    free_entry_descriptors_content(self->entry_descriptors, entry_count);
-    free(self->entry_descriptors);
-    self->entry_descriptors = NULL;
-
-    free(file_header->extension_records);
-    file_header->extension_records = NULL;
+    PyMem_Free(self->extension_records);
+    self->extension_records = NULL;
 
     return 0;
 }
@@ -95,7 +72,7 @@ PyObject *Container_set_input(ContainerObject *self,
     return Py_NewRef(Py_None);
 }
 
-PyObject *Container_get_headers(const ContainerObject *self,
+PyObject *Container_get_entries(const ContainerObject *self,
                                 PyObject *args) {
     const struct FileHeader *file_header = &self->file_header;
     if (!file_header->extension_records) {
@@ -121,8 +98,9 @@ PyObject *Container_get_headers(const ContainerObject *self,
     }
 
     long cumul_size = 0;
-    Py_ssize_t index = 0;
-    const long entry_length = sizeof(HeaderObject) - offsetof(HeaderObject, descriptor_record);
+    const long header_size = offsetof(EntryObject, identifier) - offsetof(EntryObject, descriptor_record);
+    EntryObject *entries[entry_count];
+    size_t index = 0;
     for (int i = 0; i < file_header->extension_count; ++i) {
         const long size = (long) ceil(
             file_header->extension_length_init * power((double) file_header->extension_length_power / 10., i)
@@ -134,16 +112,15 @@ PyObject *Container_get_headers(const ContainerObject *self,
             if (p_start < p_end) {
                 fseek(self->input_file,
                       WORD_LENGTH * file_header->record_length * (file_header->extension_records[i] - 1)
-                      + p_start * entry_length,
+                      + p_start * header_size,
                       SEEK_SET);
-            }
-            for (long j = p_start; j < p_end; ++j) {
-                HeaderObject *header = (HeaderObject *) HeaderType.tp_new(&HeaderType, NULL, NULL);
-                fread(&header->descriptor_record,
-                      entry_length, 1,
-                      self->input_file);
-                PyList_SET_ITEM(list, index, (PyObject *) header);
-                ++index;
+                for (long j = p_start; j < p_end; ++j) {
+                    entries[index] = (EntryObject *) EntryType.tp_alloc(&EntryType, 1);
+                    fread(&entries[index]->descriptor_record,
+                          header_size, 1,
+                          self->input_file);
+                    ++index;
+                }
             }
             if (end <= next_cumul) {
                 break;
@@ -152,94 +129,60 @@ PyObject *Container_get_headers(const ContainerObject *self,
         cumul_size = next_cumul;
     }
 
+    const long descriptor_size = offsetof(EntryObject, section_identifiers) - offsetof(EntryObject, identifier);
+    for (int i = 0; i < entry_count; ++i) {
+        EntryObject *entry = entries[i];
+        const long descriptor_address = file_header->record_length * (entry->descriptor_record - 1)
+                                        + entry->descriptor_word - 1;
+
+        fseek(self->input_file,
+              descriptor_address * WORD_LENGTH,
+              SEEK_SET);
+        fread(&entry->identifier,
+              descriptor_size, 1,
+              self->input_file);
+
+        entry->section_identifiers = PyMem_Malloc(entry->section_count * sizeof(int)); // TODO: PyMem_Free
+        if (!entry->section_identifiers) {
+            PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for section_identifiers");
+            return NULL;
+        }
+        fread(entry->section_identifiers,
+              sizeof(int), entry->section_count,
+              self->input_file);
+
+        entry->section_lengths = PyMem_Malloc(entry->section_count * sizeof(long));
+        if (!entry->section_lengths) {
+            PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for section_lengths");
+            return NULL;
+        }
+        fread(entry->section_lengths,
+              sizeof(long), entry->section_count,
+              self->input_file);
+
+        entry->section_addresses = PyMem_Malloc(entry->section_count * sizeof(long));
+        if (!entry->section_addresses) {
+            PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for section_addresses");
+            return NULL;
+        }
+        fread(entry->section_addresses,
+              sizeof(long), entry->section_count,
+              self->input_file);
+
+        PyList_SET_ITEM(list, i, entry);
+    }
+
     return list;
 }
 
-PyObject *Container_get_size(const ContainerObject *self,
-                             PyObject *Py_UNUSED(ignored)) {
+PyObject *Container_get_entry_count(const ContainerObject *self,
+                                    PyObject *Py_UNUSED(ignored)) {
     const struct FileHeader *file_header = &self->file_header;
     if (!file_header->extension_records) {
         PyErr_SetString(PyExc_AttributeError, "No input file");
         return NULL;
     }
     return PyLong_FromLong(file_header->next_entry - 1);
-}
-
-PyObject *Container_read_descriptors(ContainerObject *self,
-                                     PyObject *Py_UNUSED(ignored)) {
-    if (1) {
-        PyErr_SetString(PyExc_AttributeError, "Not implemented");
-        return NULL;
-    }
-
-    const struct FileHeader *file_header = &self->file_header;
-    const long entry_count = file_header->next_entry - 1;
-
-    free_entry_descriptors_content(self->entry_descriptors, entry_count);
-    void *temp = realloc(self->entry_descriptors, entry_count * sizeof(struct EntryDescriptor));
-    if (!temp) {
-        PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for entry_descriptors");
-        return NULL;
-    }
-    self->entry_descriptors = temp;
-
-    /*
-    for (int i = 0; i < entry_count; ++i) {
-        const struct EntryHeader *entry_header = self->entry_headers + i;
-        const long descriptor_address = file_header->record_length * (entry_header->descriptor_record - 1)
-                                        + entry_header->descriptor_word - 1;
-        struct EntryDescriptor *descriptor = self->entry_descriptors + i;
-
-        fseek(self->input_file,
-              descriptor_address * WORD_LENGTH,
-              SEEK_SET);
-        fread(descriptor,
-              offsetof(struct EntryDescriptor, section_identifiers), 1,
-              self->input_file);
-
-        descriptor->section_identifiers = malloc(descriptor->section_count * sizeof(int));
-        if (!descriptor->section_identifiers) {
-            PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for section_identifiers");
-            return NULL;
-        }
-        fread(descriptor->section_identifiers,
-              sizeof(int), descriptor->section_count,
-              self->input_file);
-
-        descriptor->section_lengths = malloc(descriptor->section_count * sizeof(long));
-        if (!descriptor->section_lengths) {
-            PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for section_lengths");
-            return NULL;
-        }
-        fread(descriptor->section_lengths,
-              sizeof(long), descriptor->section_count,
-              self->input_file);
-
-        descriptor->section_addresses = malloc(descriptor->section_count * sizeof(long));
-        if (!descriptor->section_addresses) {
-            PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for section_addresses");
-            return NULL;
-        }
-        fread(descriptor->section_addresses,
-              sizeof(long), descriptor->section_count,
-              self->input_file);
-
-        descriptor->data = malloc(descriptor->data_length * sizeof(float));
-        if (!descriptor->data) {
-            PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for data");
-            return NULL;
-        }
-        fseek(self->input_file,
-              (descriptor_address + descriptor->data_address - 1) * WORD_LENGTH,
-              SEEK_SET);
-        fread(descriptor->data,
-              sizeof(float),
-              descriptor->data_length,
-              self->input_file);
-    }
-    */
-
-    return Py_NewRef(Py_None);
 }
 
 PyMethodDef Container_methods[] = {
@@ -249,19 +192,14 @@ PyMethodDef Container_methods[] = {
         .ml_flags = METH_VARARGS
     },
     {
-        .ml_name = "get_size",
-        .ml_meth = (PyCFunction) Container_get_size,
+        .ml_name = "get_entry_count",
+        .ml_meth = (PyCFunction) Container_get_entry_count,
         .ml_flags = METH_NOARGS
     },
     {
-        .ml_name = "get_headers",
-        .ml_meth = (PyCFunction) Container_get_headers,
+        .ml_name = "get_entries",
+        .ml_meth = (PyCFunction) Container_get_entries,
         .ml_flags = METH_VARARGS
-    },
-    {
-        .ml_name = "read_descriptors",
-        .ml_meth = (PyCFunction) Container_read_descriptors,
-        .ml_flags = METH_NOARGS
     },
     {NULL}
 };

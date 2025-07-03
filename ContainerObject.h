@@ -6,7 +6,12 @@
 
 #pragma pack(1)
 
-struct FileHeader {
+typedef struct ContainerObject {
+    PyObject_HEAD
+
+    FILE *input_file;
+    FILE *output_file;
+
     char file_version[WORD_LENGTH];
     int record_length;
     int file_kind;
@@ -20,20 +25,10 @@ struct FileHeader {
     int extension_count;
     int extension_length_power;
     long *extension_records;
-};
-
-#pragma pack()
-
-
-typedef struct ContainerObject {
-    PyObject_HEAD
-
-    FILE *input_file;
-    FILE *output_file;
-
-    struct FileHeader file_header;
     // TODO: Sections
 } ContainerObject;
+
+#pragma pack()
 
 int Container_traverse(ContainerObject *self,
                        visitproc visit,
@@ -46,14 +41,11 @@ void Container_dealloc(ContainerObject *self);
 PyObject *Container_set_input(ContainerObject *self,
                               PyObject *args);
 
-PyObject *Container_get_size(const ContainerObject *self,
-                             PyObject *Py_UNUSED(ignored));
+PyObject *Container_get_entry_count(const ContainerObject *self,
+                                    PyObject *Py_UNUSED(ignored));
 
-PyObject *Container_get_headers(const ContainerObject *self,
+PyObject *Container_get_entries(const ContainerObject *self,
                                 PyObject *args);
-
-PyObject *Container_read_descriptors(ContainerObject *self,
-                                     PyObject *Py_UNUSED(ignored));
 
 extern PyMethodDef Container_methods[];
 
