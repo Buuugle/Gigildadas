@@ -13,18 +13,47 @@ static double power(const double x,
 }
 
 
+static void free_entry_descriptors_content(struct EntryDescriptor *entry_descriptors,
+                                           const long entry_count) {
+    if (!entry_descriptors) {
+        return;
+    }
+    for (int i = 0; i < entry_count; ++i) {
+        struct EntryDescriptor *descriptor = entry_descriptors + i;
+        free(descriptor->section_identifiers);
+        descriptor->section_identifiers = NULL;
+        free(descriptor->section_lengths);
+        descriptor->section_lengths = NULL;
+        free(descriptor->section_addresses);
+        descriptor->section_addresses = NULL;
+        free(descriptor->data);
+        descriptor->data = NULL;
+    }
+}
+
 void FileEditor_dealloc(FileEditor *self) {
+    printf("dealloc\n");
     if (self->input_file) {
         fclose(self->input_file);
     }
+    self->input_file = NULL;
     if (self->output_file) {
         fclose(self->output_file);
     }
-    free(self->file_header.extension_records);
-    self->file_header.extension_records = NULL;
+    self->output_file = NULL;
+
+    struct FileHeader *file_header = &self->file_header;
+    const long entry_count = file_header->next_entry - 1;
+
+    free_entry_descriptors_content(self->entry_descriptors, entry_count);
+    free(self->entry_descriptors);
+    self->entry_descriptors = NULL;
     free(self->entry_headers);
     self->entry_headers = NULL;
-    // TODO: free all pointers
+
+    free(file_header->extension_records);
+    file_header->extension_records = NULL;
+
     Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
@@ -35,6 +64,8 @@ PyObject *FileEditor_new(PyTypeObject *type,
     if (!self) {
         return NULL;
     }
+
+    printf("new\n");
 
     self->input_file = NULL;
     self->output_file = NULL;
@@ -59,14 +90,18 @@ int FileEditor_init(FileEditor *self,
     }
 
     self->input_file = fopen(filename, "rb");
+    if (!self->input_file) {
+        PyErr_SetString(PyExc_IOError, "File could not be opened");
+        return -1;
+    }
+
     struct FileHeader *file_header = &self->file_header;
     fread(file_header,
           offsetof(struct FileHeader, extension_records), 1,
           self->input_file);
 
-    file_header->extension_records = reallocarray(file_header->extension_records,
-                                                  file_header->extension_count,
-                                                  sizeof(long));
+    free(file_header->extension_records);
+    file_header->extension_records = malloc(file_header->extension_count * sizeof(long));
     if (!file_header->extension_records) {
         PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for extension_records");
         return -1;
@@ -76,18 +111,20 @@ int FileEditor_init(FileEditor *self,
     return 0;
 }
 
-PyObject *FileEditor_read_entries(FileEditor *self,
+PyObject *FileEditor_read_headers(FileEditor *self,
                                   PyObject *Py_UNUSED(ignored)) {
     const struct FileHeader *file_header = &self->file_header;
     const long entry_count = file_header->next_entry - 1;
 
-    self->entry_headers = reallocarray(self->entry_headers,
-                                       entry_count,
-                                       sizeof(struct EntryHeader));
-    if (!self->entry_headers) {
+    void *temp = reallocarray(self->entry_headers,
+                              entry_count,
+                              sizeof(struct EntryHeader));
+    if (!temp) {
         PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for entry_headers");
         return NULL;
     }
+    printf("test\n");
+    self->entry_headers = temp;
 
     long current_count = 0;
     for (int i = 0; i < file_header->extension_count; ++i) {
@@ -114,16 +151,23 @@ PyObject *FileEditor_read_entries(FileEditor *self,
 
 PyObject *FileEditor_read_data(FileEditor *self,
                                PyObject *Py_UNUSED(ignored)) {
+    if (!self->entry_headers) {
+        PyErr_SetString(PyExc_AttributeError, "Headers must be read before data");
+        return NULL;
+    }
+
     const struct FileHeader *file_header = &self->file_header;
     const long entry_count = file_header->next_entry - 1;
 
-    self->entry_descriptors = reallocarray(self->entry_descriptors,
-                                           entry_count,
-                                           sizeof(struct EntryDescriptor));
-    if (!self->entry_descriptors) {
+    free_entry_descriptors_content(self->entry_descriptors, entry_count);
+    void *temp = reallocarray(self->entry_descriptors,
+                              entry_count,
+                              sizeof(struct EntryDescriptor));
+    if (!temp) {
         PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for entry_descriptors");
         return NULL;
     }
+    self->entry_descriptors = temp;
 
     for (int i = 0; i < entry_count; ++i) {
         const struct EntryHeader *entry_header = self->entry_headers + i;
@@ -138,16 +182,50 @@ PyObject *FileEditor_read_data(FileEditor *self,
               offsetof(struct EntryDescriptor, section_identifiers), 1,
               self->input_file);
 
+        temp = reallocarray(entry_descriptor->section_identifiers,
+                            entry_descriptor->section_count,
+                            sizeof(int));
+        if (!temp) {
+            PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for section_identifiers");
+            return NULL;
+        }
+        entry_descriptor->section_identifiers = temp;
         fread(entry_descriptor->section_identifiers,
               sizeof(int), entry_descriptor->section_count,
               self->input_file);
+
+        temp = reallocarray(entry_descriptor->section_lengths,
+                            entry_descriptor->section_count,
+                            sizeof(long));
+        if (!temp) {
+            PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for section_lengths");
+            return NULL;
+        }
+        entry_descriptor->section_lengths = temp;
         fread(entry_descriptor->section_lengths,
               sizeof(long), entry_descriptor->section_count,
               self->input_file);
+
+        temp = reallocarray(entry_descriptor->section_addresses,
+                            entry_descriptor->section_count,
+                            sizeof(long));
+        if (!temp) {
+            PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for section_addresses");
+            return NULL;
+        }
+        entry_descriptor->section_addresses = temp;
         fread(entry_descriptor->section_addresses,
               sizeof(long), entry_descriptor->section_count,
               self->input_file);
 
+        temp = reallocarray(entry_descriptor->data,
+                            entry_descriptor->data_length,
+                            sizeof(float));
+        if (!temp) {
+            PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for data");
+            return NULL;
+        }
+        entry_descriptor->data = temp;
         fseek(self->input_file,
               (descriptor_address + entry_descriptor->data_address - 1) * WORD_LENGTH,
               SEEK_SET);
@@ -159,3 +237,29 @@ PyObject *FileEditor_read_data(FileEditor *self,
 
     return Py_NewRef(Py_None);
 }
+
+PyMethodDef FileEditor_methods[] = {
+    {
+        .ml_name = "read_headers",
+        .ml_meth = (PyCFunction) FileEditor_read_headers,
+        .ml_flags = METH_NOARGS
+    },
+    {
+        .ml_name = "read_data",
+        .ml_meth = (PyCFunction) FileEditor_read_data,
+        .ml_flags = METH_NOARGS
+    },
+    {NULL}
+};
+
+PyTypeObject FileEditorType = {
+    .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "classeditor.FileEditor",
+    .tp_basicsize = sizeof(FileEditor),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_new = FileEditor_new,
+    .tp_init = (initproc) FileEditor_init,
+    .tp_dealloc = (destructor) FileEditor_dealloc,
+    .tp_methods = FileEditor_methods,
+};

@@ -3,13 +3,14 @@
 
 #include <stddef.h>
 
-#define WORD_LENGTH 4
+#include  "FileEditor.h"
+
 
 static int exec(PyObject *module) {
-    if (PyType_Ready(&FileHeaderType) < 0) {
+    if (PyType_Ready(&FileEditorType) < 0) {
         return -1;
     }
-    if (PyModule_AddObjectRef(module, "FileHeader", (PyObject *) &FileHeaderType) < 0) {
+    if (PyModule_AddObjectRef(module, "FileEditor", (PyObject *) &FileEditorType) < 0) {
         return -1;
     }
 

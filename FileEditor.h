@@ -83,8 +83,12 @@ int FileEditor_init(FileEditor *self,
                     PyObject *args,
                     PyObject *kwargs);
 
-PyObject *FileEditor_read_entries(FileEditor *self,
+PyObject *FileEditor_read_headers(FileEditor *self,
                                   PyObject *Py_UNUSED(ignored));
 
 PyObject *FileEditor_read_data(FileEditor *self,
                                PyObject *Py_UNUSED(ignored));
+
+extern PyMethodDef FileEditor_methods[];
+
+extern PyTypeObject FileEditorType;
