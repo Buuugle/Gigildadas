@@ -32,7 +32,6 @@ static void free_entry_descriptors_content(struct EntryDescriptor *entry_descrip
 }
 
 void FileEditor_dealloc(FileEditor *self) {
-    printf("dealloc\n");
     if (self->input_file) {
         fclose(self->input_file);
     }
@@ -64,8 +63,6 @@ PyObject *FileEditor_new(PyTypeObject *type,
     if (!self) {
         return NULL;
     }
-
-    printf("new\n");
 
     self->input_file = NULL;
     self->output_file = NULL;
@@ -100,12 +97,14 @@ int FileEditor_init(FileEditor *self,
           offsetof(struct FileHeader, extension_records), 1,
           self->input_file);
 
-    free(file_header->extension_records);
-    file_header->extension_records = malloc(file_header->extension_count * sizeof(long));
-    if (!file_header->extension_records) {
+    void *temp = reallocarray(file_header->extension_records,
+                              file_header->extension_count,
+                              sizeof(long));
+    if (!temp) {
         PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for extension_records");
         return -1;
     }
+    file_header->extension_records = temp;
     fread(file_header->extension_records, sizeof(long), file_header->extension_count, self->input_file);
 
     return 0;
@@ -132,7 +131,7 @@ PyObject *FileEditor_read_headers(FileEditor *self,
             file_header->extension_length_init * power((double) file_header->extension_length_power / 10., i)
         );
         if (count > entry_count - current_count) {
-            count = current_count;
+            count = entry_count - current_count;
         }
         fseek(self->input_file,
               WORD_LENGTH * file_header->record_length * (file_header->extension_records[i] - 1),
@@ -160,9 +159,7 @@ PyObject *FileEditor_read_data(FileEditor *self,
     const long entry_count = file_header->next_entry - 1;
 
     free_entry_descriptors_content(self->entry_descriptors, entry_count);
-    void *temp = reallocarray(self->entry_descriptors,
-                              entry_count,
-                              sizeof(struct EntryDescriptor));
+    void *temp = realloc(self->entry_descriptors, entry_count * sizeof(struct EntryDescriptor));
     if (!temp) {
         PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for entry_descriptors");
         return NULL;
@@ -173,65 +170,53 @@ PyObject *FileEditor_read_data(FileEditor *self,
         const struct EntryHeader *entry_header = self->entry_headers + i;
         const long descriptor_address = file_header->record_length * (entry_header->descriptor_record - 1)
                                         + entry_header->descriptor_word - 1;
-        struct EntryDescriptor *entry_descriptor = self->entry_descriptors + i;
+        struct EntryDescriptor *descriptor = self->entry_descriptors + i;
 
         fseek(self->input_file,
               descriptor_address * WORD_LENGTH,
               SEEK_SET);
-        fread(entry_descriptor,
+        fread(descriptor,
               offsetof(struct EntryDescriptor, section_identifiers), 1,
               self->input_file);
 
-        temp = reallocarray(entry_descriptor->section_identifiers,
-                            entry_descriptor->section_count,
-                            sizeof(int));
-        if (!temp) {
+        descriptor->section_identifiers = malloc(descriptor->section_count * sizeof(int));
+        if (!descriptor->section_identifiers) {
             PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for section_identifiers");
             return NULL;
         }
-        entry_descriptor->section_identifiers = temp;
-        fread(entry_descriptor->section_identifiers,
-              sizeof(int), entry_descriptor->section_count,
+        fread(descriptor->section_identifiers,
+              sizeof(int), descriptor->section_count,
               self->input_file);
 
-        temp = reallocarray(entry_descriptor->section_lengths,
-                            entry_descriptor->section_count,
-                            sizeof(long));
-        if (!temp) {
+        descriptor->section_lengths = malloc(descriptor->section_count * sizeof(long));
+        if (!descriptor->section_lengths) {
             PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for section_lengths");
             return NULL;
         }
-        entry_descriptor->section_lengths = temp;
-        fread(entry_descriptor->section_lengths,
-              sizeof(long), entry_descriptor->section_count,
+        fread(descriptor->section_lengths,
+              sizeof(long), descriptor->section_count,
               self->input_file);
 
-        temp = reallocarray(entry_descriptor->section_addresses,
-                            entry_descriptor->section_count,
-                            sizeof(long));
-        if (!temp) {
+        descriptor->section_addresses = malloc(descriptor->section_count * sizeof(long));
+        if (!descriptor->section_addresses) {
             PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for section_addresses");
             return NULL;
         }
-        entry_descriptor->section_addresses = temp;
-        fread(entry_descriptor->section_addresses,
-              sizeof(long), entry_descriptor->section_count,
+        fread(descriptor->section_addresses,
+              sizeof(long), descriptor->section_count,
               self->input_file);
 
-        temp = reallocarray(entry_descriptor->data,
-                            entry_descriptor->data_length,
-                            sizeof(float));
-        if (!temp) {
+        descriptor->data = malloc(descriptor->data_length * sizeof(float));
+        if (!descriptor->data) {
             PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for data");
             return NULL;
         }
-        entry_descriptor->data = temp;
         fseek(self->input_file,
-              (descriptor_address + entry_descriptor->data_address - 1) * WORD_LENGTH,
+              (descriptor_address + descriptor->data_address - 1) * WORD_LENGTH,
               SEEK_SET);
-        fread(entry_descriptor->data,
+        fread(descriptor->data,
               sizeof(float),
-              entry_descriptor->data_length,
+              descriptor->data_length,
               self->input_file);
     }
 
@@ -257,7 +242,7 @@ PyTypeObject FileEditorType = {
     .tp_name = "classeditor.FileEditor",
     .tp_basicsize = sizeof(FileEditor),
     .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_new = FileEditor_new,
     .tp_init = (initproc) FileEditor_init,
     .tp_dealloc = (destructor) FileEditor_dealloc,
