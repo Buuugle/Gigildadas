@@ -1,7 +1,8 @@
 #pragma once
 
-#define PY_SSIZE_T_CLEAN
 #include <python3.13/Python.h>
+
+#include "HeaderObject.h"
 
 #define WORD_LENGTH 4
 
@@ -61,7 +62,7 @@ struct FileHeader {
 #pragma pack()
 
 
-typedef struct FileEditor {
+typedef struct ContainerObject {
     PyObject_HEAD
 
     FILE *input_file;
@@ -71,24 +72,35 @@ typedef struct FileEditor {
     struct EntryHeader *entry_headers;
     struct EntryDescriptor *entry_descriptors;
     // TODO: Sections
-} FileEditor;
+} ContainerObject;
 
-void FileEditor_dealloc(FileEditor *self);
+int Container_traverse(ContainerObject *self,
+                       visitproc visit,
+                       void *arg);
 
-PyObject *FileEditor_new(PyTypeObject *type,
-                         PyObject *args,
-                         PyObject *kwargs);
+int Container_clear(ContainerObject *self);
 
-int FileEditor_init(FileEditor *self,
-                    PyObject *args,
-                    PyObject *kwargs);
+void Container_dealloc(ContainerObject *self);
 
-PyObject *FileEditor_read_headers(FileEditor *self,
-                                  PyObject *Py_UNUSED(ignored));
+PyObject *Container_new(PyTypeObject *type,
+                        PyObject *args,
+                        PyObject *kwargs);
 
-PyObject *FileEditor_read_data(FileEditor *self,
-                               PyObject *Py_UNUSED(ignored));
+PyObject *Container_set_input(ContainerObject *self,
+                              PyObject *args);
 
-extern PyMethodDef FileEditor_methods[];
+PyObject *Container_read_headers(ContainerObject *self,
+                                 PyObject *Py_UNUSED(ignored));
 
-extern PyTypeObject FileEditorType;
+PyObject *Container_get_size(const ContainerObject *self,
+                                    PyObject *Py_UNUSED(ignored));
+
+PyObject *Container_get_headers(const ContainerObject *self,
+                                PyObject *args);
+
+PyObject *Container_read_descriptors(ContainerObject *self,
+                                     PyObject *Py_UNUSED(ignored));
+
+extern PyMethodDef Container_methods[];
+
+extern PyTypeObject ContainerType;
