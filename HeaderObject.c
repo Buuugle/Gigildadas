@@ -3,45 +3,8 @@
 #include "HeaderObject.h"
 
 
-int Header_traverse(const HeaderObject *self,
-                    const visitproc visit,
-                    void *arg) {
-    Py_VISIT(self->source);
-    Py_VISIT(self->line);
-    Py_VISIT(self->telescope);
-    return 0;
-}
-
-int Header_clear(HeaderObject *self) {
-    Py_CLEAR(self->source);
-    Py_CLEAR(self->line);
-    Py_CLEAR(self->telescope);
-    return 0;
-}
-
 void Header_dealloc(HeaderObject *self) {
-    PyObject_GC_UnTrack(self);
-    Header_clear(self);
     Py_TYPE(self)->tp_free((PyObject *) self);
-}
-
-PyObject *Header_new(PyTypeObject *type,
-                     PyObject *args,
-                     PyObject *kwargs) {
-    HeaderObject *self = (HeaderObject *) type->tp_alloc(type, 0);
-    if (!self) {
-        return NULL;
-    }
-
-    self->source = PyUnicode_FromString("");
-    self->line = PyUnicode_FromString("");
-    self->telescope = PyUnicode_FromString("");
-    if (!(self->source && self->line && self->telescope)) {
-        Py_DECREF(self);
-        return NULL;
-    }
-
-    return (PyObject *) self;
 }
 
 int Header_set_source(HeaderObject *self,
@@ -55,13 +18,25 @@ int Header_set_source(HeaderObject *self,
         PyErr_SetString(PyExc_TypeError, "Source must be a string");
         return -1;
     }
-    Py_SETREF(self->source, Py_NewRef(value));
+    const long length = sizeof(self->source);
+    Py_ssize_t arg_length;
+    wchar_t *str = PyUnicode_AsWideCharString(value, &arg_length);
+    if (!str) {
+        return -1;
+    }
+    printf("%ld\n", arg_length);
+    if (arg_length < length) {
+        PyErr_SetString(PyExc_ValueError, "Wrong length");
+        return -1;
+    }
+    wcstombs(self->source, str, length);
+    PyMem_Free(str);
     return 0;
 }
 
 PyObject *Header_get_source(const HeaderObject *self,
                             void *closure) {
-    return Py_NewRef(self->source);
+    return unicode_from_chars(self->source, sizeof(self->source));
 }
 
 int Header_set_line(HeaderObject *self,
@@ -75,13 +50,24 @@ int Header_set_line(HeaderObject *self,
         PyErr_SetString(PyExc_TypeError, "Line must be a string");
         return -1;
     }
-    Py_SETREF(self->line, Py_NewRef(value));
+    const long length = sizeof(self->line);
+    Py_ssize_t arg_length;
+    wchar_t *str = PyUnicode_AsWideCharString(value, &arg_length);
+    if (!str) {
+        return -1;
+    }
+    if (arg_length < length) {
+        PyErr_SetString(PyExc_ValueError, "Wrong length");
+        return -1;
+    }
+    wcstombs(self->line, str, length);
+    PyMem_Free(str);
     return 0;
 }
 
 PyObject *Header_get_line(const HeaderObject *self,
                           void *closure) {
-    return Py_NewRef(self->line);
+    return unicode_from_chars(self->line, sizeof(self->line));
 }
 
 int Header_set_telescope(HeaderObject *self,
@@ -95,13 +81,24 @@ int Header_set_telescope(HeaderObject *self,
         PyErr_SetString(PyExc_TypeError, "Telescope must be a string");
         return -1;
     }
-    Py_SETREF(self->telescope, Py_NewRef(value));
+    const long length = sizeof(self->telescope);
+    Py_ssize_t arg_length;
+    wchar_t *str = PyUnicode_AsWideCharString(value, &arg_length);
+    if (!str) {
+        return -1;
+    }
+    if (arg_length < length) {
+        PyErr_SetString(PyExc_ValueError, "Wrong length");
+        return -1;
+    }
+    wcstombs(self->telescope, str, length);
+    PyMem_Free(str);
     return 0;
 }
 
 PyObject *Header_get_telescope(const HeaderObject *self,
                                void *closure) {
-    return Py_NewRef(self->telescope);
+    return unicode_from_chars(self->telescope, sizeof(self->telescope));
 }
 
 PyMemberDef Header_members[] = {
@@ -187,16 +184,14 @@ PyGetSetDef Header_getset[] = {
     {NULL}
 };
 
-extern PyTypeObject HeaderType = {
+PyTypeObject HeaderType = {
     .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = "Header",
     .tp_basicsize = sizeof(HeaderObject),
     .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,
-    .tp_new = Header_new,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_new = PyType_GenericNew,
     .tp_dealloc = (destructor) Header_dealloc,
-    .tp_traverse = (traverseproc) Header_traverse,
-    .tp_clear = (inquiry) Header_clear,
     .tp_members = Header_members,
     .tp_getset = Header_getset
 };

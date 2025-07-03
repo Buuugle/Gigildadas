@@ -2,15 +2,8 @@
 
 #include "ContainerObject.h"
 
-
-static double power(const double x,
-                    const int n) {
-    double result = 1.;
-    for (int i = 0; i < n; ++i) {
-        result *= x;
-    }
-    return result;
-}
+#include "HeaderObject.h"
+#include "Utils.h"
 
 
 static void free_entry_descriptors_content(struct EntryDescriptor *entry_descriptors,
@@ -29,16 +22,6 @@ static void free_entry_descriptors_content(struct EntryDescriptor *entry_descrip
         free(descriptor->data);
         descriptor->data = NULL;
     }
-}
-
-static PyObject *unicode_from_chars(const char *str,
-                                    const long length) {
-    char new_str[length + 1];
-    new_str[length] = '\0';
-    for (int i = 0; i < length; ++i) {
-        new_str[i] = str[i];
-    }
-    return PyUnicode_FromString(new_str);
 }
 
 int Container_traverse(ContainerObject *self,
@@ -64,8 +47,6 @@ int Container_clear(ContainerObject *self) {
     free_entry_descriptors_content(self->entry_descriptors, entry_count);
     free(self->entry_descriptors);
     self->entry_descriptors = NULL;
-    free(self->entry_headers);
-    self->entry_headers = NULL;
 
     free(file_header->extension_records);
     file_header->extension_records = NULL;
@@ -77,23 +58,6 @@ void Container_dealloc(ContainerObject *self) {
     PyObject_GC_UnTrack(self);
     Container_clear(self);
     Py_TYPE(self)->tp_free((PyObject *) self);
-}
-
-PyObject *Container_new(PyTypeObject *type,
-                        PyObject *args,
-                        PyObject *kwargs) {
-    ContainerObject *self = (ContainerObject *) type->tp_alloc(type, 0);
-    if (!self) {
-        return NULL;
-    }
-
-    self->input_file = NULL;
-    self->output_file = NULL;
-    self->file_header.extension_records = NULL;
-    self->entry_headers = NULL;
-    self->entry_descriptors = NULL;
-
-    return (PyObject *) self;
 }
 
 PyObject *Container_set_input(ContainerObject *self,
@@ -113,16 +77,6 @@ PyObject *Container_set_input(ContainerObject *self,
         return NULL;
     }
 
-    return Py_NewRef(Py_None);
-}
-
-PyObject *Container_read_headers(ContainerObject *self,
-                                 PyObject *Py_UNUSED(ignored)) {
-    if (!self->input_file) {
-        PyErr_SetString(PyExc_AttributeError, "No input file opened");
-        return NULL;
-    }
-
     struct FileHeader *file_header = &self->file_header;
 
     fseek(self->input_file, 0, SEEK_SET);
@@ -138,100 +92,83 @@ PyObject *Container_read_headers(ContainerObject *self,
     file_header->extension_records = temp;
     fread(file_header->extension_records, sizeof(long), file_header->extension_count, self->input_file);
 
-    const long entry_count = file_header->next_entry - 1;
-
-    temp = realloc(self->entry_headers, entry_count * sizeof(struct EntryHeader));
-    if (!temp) {
-        PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for entry_headers");
-        return NULL;
-    }
-    self->entry_headers = temp;
-
-    long current_count = 0;
-    for (int i = 0; i < file_header->extension_count; ++i) {
-        long count = (long) ceil(
-            file_header->extension_length_init * power((double) file_header->extension_length_power / 10., i)
-        );
-        const long max_count = entry_count - current_count;
-        if (count > max_count) {
-            count = max_count;
-        }
-        fseek(self->input_file,
-              WORD_LENGTH * file_header->record_length * (file_header->extension_records[i] - 1),
-              SEEK_SET);
-        fread(self->entry_headers + current_count,
-              sizeof(struct EntryHeader),
-              count,
-              self->input_file);
-
-        current_count += count;
-    }
-
     return Py_NewRef(Py_None);
-}
-
-PyObject *Container_get_size(const ContainerObject *self,
-                             PyObject *Py_UNUSED(ignored)) {
-    if (!self->entry_headers) {
-        PyErr_SetString(PyExc_AttributeError, "No headers found");
-        return NULL;
-    }
-    return PyLong_FromLong(self->file_header.next_entry - 1);
 }
 
 PyObject *Container_get_headers(const ContainerObject *self,
                                 PyObject *args) {
-    if (!self->entry_headers) {
-        PyErr_SetString(PyExc_AttributeError, "No headers found");
+    const struct FileHeader *file_header = &self->file_header;
+    if (!file_header->extension_records) {
+        PyErr_SetString(PyExc_AttributeError, "No input file");
         return NULL;
     }
 
-    long begin = 0;
-    long end = self->file_header.next_entry - 1;
-    if (!PyArg_ParseTuple(args, "|ll", &begin, &end)) {
+    const long entry_count = file_header->next_entry - 1;
+    Py_ssize_t start = 0;
+    Py_ssize_t end = entry_count;
+    if (!PyArg_ParseTuple(args, "|ll", &start, &end)) {
+        return NULL;
+    }
+    if (start >= end || start < 0 || end > entry_count) {
+        PyErr_SetString(PyExc_IndexError, "Invalid range");
         return NULL;
     }
 
-    PyObject *list = PyList_New(end - begin);
+    PyObject *list = PyList_New(end - start);
     if (!list) {
         PyErr_SetString(PyExc_ValueError, "Cannot create list");
         return NULL;
     }
 
-    PyObject *header_args = PyTuple_New(0);
-    PyObject *header_kwargs = PyDict_New();
-    const long char_length = 3 * WORD_LENGTH;
-    for (Py_ssize_t i = begin; i < end; ++i) {
-        HeaderObject *header = (HeaderObject *) Header_new(&HeaderType, header_args, header_kwargs);
-        const struct EntryHeader *entry_header = self->entry_headers + i;
-        header->number = entry_header->number;
-        header->version = entry_header->version;
-        Py_SETREF(header->source, unicode_from_chars(entry_header->source, char_length));
-        Py_SETREF(header->line, unicode_from_chars(entry_header->line, char_length));
-        Py_SETREF(header->telescope, unicode_from_chars(entry_header->telescope, char_length));
-        header->observation_date = entry_header->observation_date;
-        header->reduction_date = entry_header->reduction_date;
-        header->lambda_offset = entry_header->lambda_offset;
-        header->beta_offset = entry_header->beta_offset;
-        header->coordinate_system = entry_header->coordinate_system;
-        header->kind = entry_header->kind;
-        header->quality = entry_header->quality;
-        header->position_angle = entry_header->position_angle;
-        header->scan = entry_header->scan;
-        header->sub_scan = entry_header->sub_scan;
-
-        PyList_SET_ITEM(list, i, (PyObject *) header);
+    long cumul_size = 0;
+    Py_ssize_t index = 0;
+    const long entry_length = sizeof(HeaderObject) - offsetof(HeaderObject, descriptor_record);
+    for (int i = 0; i < file_header->extension_count; ++i) {
+        const long size = (long) ceil(
+            file_header->extension_length_init * power((double) file_header->extension_length_power / 10., i)
+        );
+        const long next_cumul = cumul_size + size;
+        if (start < next_cumul) {
+            const long p_start = max(0, start - cumul_size);
+            const long p_end = min(size, end - cumul_size);
+            if (p_start < p_end) {
+                fseek(self->input_file,
+                      WORD_LENGTH * file_header->record_length * (file_header->extension_records[i] - 1)
+                      + p_start * entry_length,
+                      SEEK_SET);
+            }
+            for (long j = p_start; j < p_end; ++j) {
+                HeaderObject *header = (HeaderObject *) HeaderType.tp_new(&HeaderType, NULL, NULL);
+                fread(&header->descriptor_record,
+                      entry_length, 1,
+                      self->input_file);
+                PyList_SET_ITEM(list, index, (PyObject *) header);
+                ++index;
+            }
+            if (end <= next_cumul) {
+                break;
+            }
+        }
+        cumul_size = next_cumul;
     }
-    Py_DECREF(header_args);
-    Py_DECREF(header_kwargs);
 
     return list;
 }
 
+PyObject *Container_get_size(const ContainerObject *self,
+                             PyObject *Py_UNUSED(ignored)) {
+    const struct FileHeader *file_header = &self->file_header;
+    if (!file_header->extension_records) {
+        PyErr_SetString(PyExc_AttributeError, "No input file");
+        return NULL;
+    }
+    return PyLong_FromLong(file_header->next_entry - 1);
+}
+
 PyObject *Container_read_descriptors(ContainerObject *self,
                                      PyObject *Py_UNUSED(ignored)) {
-    if (!self->entry_headers) {
-        PyErr_SetString(PyExc_AttributeError, "No headers found");
+    if (1) {
+        PyErr_SetString(PyExc_AttributeError, "Not implemented");
         return NULL;
     }
 
@@ -246,6 +183,7 @@ PyObject *Container_read_descriptors(ContainerObject *self,
     }
     self->entry_descriptors = temp;
 
+    /*
     for (int i = 0; i < entry_count; ++i) {
         const struct EntryHeader *entry_header = self->entry_headers + i;
         const long descriptor_address = file_header->record_length * (entry_header->descriptor_record - 1)
@@ -299,6 +237,7 @@ PyObject *Container_read_descriptors(ContainerObject *self,
               descriptor->data_length,
               self->input_file);
     }
+    */
 
     return Py_NewRef(Py_None);
 }
@@ -308,11 +247,6 @@ PyMethodDef Container_methods[] = {
         .ml_name = "set_input",
         .ml_meth = (PyCFunction) Container_set_input,
         .ml_flags = METH_VARARGS
-    },
-    {
-        .ml_name = "read_headers",
-        .ml_meth = (PyCFunction) Container_read_headers,
-        .ml_flags = METH_NOARGS
     },
     {
         .ml_name = "get_size",
@@ -338,7 +272,7 @@ PyTypeObject ContainerType = {
     .tp_basicsize = sizeof(ContainerObject),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,
-    .tp_new = Container_new,
+    .tp_new = PyType_GenericNew,
     .tp_dealloc = (destructor) Container_dealloc,
     .tp_traverse = (traverseproc) Container_traverse,
     .tp_clear = (inquiry) Container_clear,

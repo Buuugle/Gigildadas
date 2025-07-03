@@ -2,19 +2,21 @@
 
 #include <python3.13/Python.h>
 
-#include "ContainerObject.h"
+#include "Utils.h"
 
+
+#pragma pack(1)
 
 typedef struct HeaderObject {
     PyObject_HEAD
 
-    struct EntryHeader *entry_header;
-
+    long descriptor_record;
+    int descriptor_word;
     long number;
     int version;
-    PyObject *source;
-    PyObject *line;
-    PyObject *telescope;
+    char source[3 * WORD_LENGTH];
+    char line[3 * WORD_LENGTH];
+    char telescope[3 * WORD_LENGTH];
     int observation_date;
     int reduction_date;
     float lambda_offset;
@@ -25,19 +27,22 @@ typedef struct HeaderObject {
     float position_angle;
     long scan;
     int sub_scan;
+
+    char identifier[WORD_LENGTH];
+    int descriptor_version;
+    int section_count;
+    long entry_length;
+    long data_address;
+    long data_length;
+    long descriptor_number;
+    int *section_identifiers;
+    long *section_lengths;
+    long *section_addresses;
 } HeaderObject;
 
-int Header_traverse(const HeaderObject *self,
-                    visitproc visit,
-                    void *arg);
-
-int Header_clear(HeaderObject *self);
+#pragma pack()
 
 void Header_dealloc(HeaderObject *self);
-
-PyObject *Header_new(PyTypeObject *type,
-                     PyObject *args,
-                     PyObject *kwargs);
 
 int Header_set_source(HeaderObject *self,
                       PyObject *value,

@@ -8,6 +8,7 @@ add_library(${PROJECT_NAME} SHARED
         Module.c
         ContainerObject.c
         HeaderObject.c
+        Utils.c
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "gildascontainer")

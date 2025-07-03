@@ -2,46 +2,9 @@
 
 #include <python3.13/Python.h>
 
-#include "HeaderObject.h"
-
-#define WORD_LENGTH 4
-
+#include "Utils.h"
 
 #pragma pack(1)
-
-struct EntryDescriptor {
-    char identifier[WORD_LENGTH];
-    int version;
-    int section_count;
-    long entry_length;
-    long data_address;
-    long data_length;
-    long number;
-    int *section_identifiers;
-    long *section_lengths;
-    long *section_addresses;
-    float *data;
-};
-
-struct EntryHeader {
-    long descriptor_record;
-    int descriptor_word;
-    long number;
-    int version;
-    char source[3 * WORD_LENGTH];
-    char line[3 * WORD_LENGTH];
-    char telescope[3 * WORD_LENGTH];
-    int observation_date;
-    int reduction_date;
-    float lambda_offset;
-    float beta_offset;
-    int coordinate_system; // code
-    int kind; // code
-    int quality; // code
-    float position_angle;
-    long scan;
-    int sub_scan;
-};
 
 struct FileHeader {
     char file_version[WORD_LENGTH];
@@ -69,8 +32,6 @@ typedef struct ContainerObject {
     FILE *output_file;
 
     struct FileHeader file_header;
-    struct EntryHeader *entry_headers;
-    struct EntryDescriptor *entry_descriptors;
     // TODO: Sections
 } ContainerObject;
 
@@ -82,18 +43,11 @@ int Container_clear(ContainerObject *self);
 
 void Container_dealloc(ContainerObject *self);
 
-PyObject *Container_new(PyTypeObject *type,
-                        PyObject *args,
-                        PyObject *kwargs);
-
 PyObject *Container_set_input(ContainerObject *self,
                               PyObject *args);
 
-PyObject *Container_read_headers(ContainerObject *self,
-                                 PyObject *Py_UNUSED(ignored));
-
 PyObject *Container_get_size(const ContainerObject *self,
-                                    PyObject *Py_UNUSED(ignored));
+                             PyObject *Py_UNUSED(ignored));
 
 PyObject *Container_get_headers(const ContainerObject *self,
                                 PyObject *args);
