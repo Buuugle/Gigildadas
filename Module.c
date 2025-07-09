@@ -24,8 +24,8 @@ static int exec(PyObject *module) {
     PyObject_SetAttrString(module, "GENERAL_SECTION_ID", PyLong_FromLong(GENERAL_SECTION_ID));
     PyObject_SetAttrString(module, "POSITION_SECTION_ID", PyLong_FromLong(POSITION_SECTION_ID));
     PyObject_SetAttrString(module, "SPECTRO_SECTION_ID", PyLong_FromLong(SPECTRO_SECTION_ID));
-    PyObject_SetAttrString(module, "PLOTTING_SECTION_ID", PyLong_FromLong(PLOTTING_SECTION_ID));
-    PyObject_SetAttrString(module, "SWITCHING_SECTION_ID", PyLong_FromLong(SWITCHING_SECTION_ID));
+    PyObject_SetAttrString(module, "PLOT_SECTION_ID", PyLong_FromLong(PLOT_SECTION_ID));
+    PyObject_SetAttrString(module, "SWITCH_SECTION_ID", PyLong_FromLong(SWITCH_SECTION_ID));
     PyObject_SetAttrString(module, "CALIBRATION_SECTION_ID", PyLong_FromLong(CALIBRATION_SECTION_ID));
     return 0;
 }

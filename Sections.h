@@ -7,8 +7,8 @@
 #define GENERAL_SECTION_ID -2
 #define POSITION_SECTION_ID -3
 #define SPECTRO_SECTION_ID -4
-#define PLOTTING_SECTION_ID -7
-#define SWITCHING_SECTION_ID -8
+#define PLOT_SECTION_ID -7
+#define SWITCH_SECTION_ID -8
 #define CALIBRATION_SECTION_ID -14
 
 
@@ -56,18 +56,18 @@ typedef struct SpectroSectionObject {
     double image_frequency;
     int velocity_type; // code
     double doppler_correction;
-} SpectroscopicObject;
+} SpectroSectionObject;
 
-typedef struct PlottingSectionObject {
+typedef struct PlotSectionObject {
     PyObject_HEAD
 
     float intensity_min;
     float intensity_max;
     float velocity_min;
     float velocity_max;
-} DefaultPlottingObject;
+} PlotSectionObject;
 
-typedef struct SwitchingSectionObject {
+typedef struct SwitchSectionObject {
     PyObject_HEAD
 
     int phase_count;
@@ -77,7 +77,7 @@ typedef struct SwitchingSectionObject {
     int switching_mode; // code
     float *lambda_offsets;
     float *beta_offsets;
-} SwitchingSectionObject;
+} SwitchSectionObject;
 
 typedef struct CalibrationSectionObject {
     PyObject_HEAD
@@ -108,6 +108,63 @@ typedef struct CalibrationSectionObject {
 } CalibrationSectionObject;
 
 #pragma pack()
+
+
+PyObject *GeneralSection_traverse(GeneralSectionObject *self,
+                                  visitproc visit,
+                                  void *arg);
+
+PyObject *GeneralSection_clear(GeneralSectionObject *self);
+
+void GeneralSection_dealloc(GeneralSectionObject *self);
+
+
+PyObject *PositionSection_traverse(GeneralSectionObject *self,
+                                   visitproc visit,
+                                   void *arg);
+
+PyObject *PositionSection_clear(GeneralSectionObject *self);
+
+void PositionSection_dealloc(GeneralSectionObject *self);
+
+
+PyObject *SpectroSection_traverse(GeneralSectionObject *self,
+                                  visitproc visit,
+                                  void *arg);
+
+PyObject *SpectroSection_clear(GeneralSectionObject *self);
+
+void SpectroSection_dealloc(GeneralSectionObject *self);
+
+PyObject *SpectroSection_get_source
+
+
+PyObject *PlotSection_traverse(GeneralSectionObject *self,
+                               visitproc visit,
+                               void *arg);
+
+PyObject *PlotSection_clear(GeneralSectionObject *self);
+
+void PlotSection_dealloc(GeneralSectionObject *self);
+
+
+PyObject *SwitchSection_traverse(GeneralSectionObject *self,
+                                 visitproc visit,
+                                 void *arg);
+
+PyObject *SwitchSection_clear(GeneralSectionObject *self);
+
+void SwitchSection_dealloc(GeneralSectionObject *self);
+
+
+PyObject *CalibrationSection_traverse(GeneralSectionObject *self,
+                                      visitproc visit,
+                                      void *arg);
+
+PyObject *CalibrationSection_clear(GeneralSectionObject *self);
+
+void CalibrationSection_dealloc(GeneralSectionObject *self);
+
 
 extern PyMemberDef GeneralSection_members[];
 extern PyTypeObject GeneralSectionType;
