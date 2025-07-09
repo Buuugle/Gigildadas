@@ -1,4 +1,6 @@
-#include <python3.13/Python.h>
+#include <Python.h>
+#define PY_ARRAY_UNIQUE_SYMBOL Module
+#include <numpy/arrayobject.h>
 
 #include  "ContainerObject.h"
 #include "EntryObject.h"
@@ -42,5 +44,6 @@ static PyModuleDef module = {
 };
 
 PyMODINIT_FUNC PyInit_gildascontainer() {
+    import_array()
     return PyModuleDef_Init(&module);
 }

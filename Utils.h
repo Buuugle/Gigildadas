@@ -1,6 +1,6 @@
 #pragma once
 
-#include <python3.13/Python.h>
+#include <Python.h>
 
 #define WORD_LENGTH 4
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <python3.13/Python.h>
+#include <Python.h>
 
 #include "Utils.h"
 
@@ -38,36 +38,55 @@ typedef struct EntryObject {
     int *section_identifiers;
     long *section_lengths;
     long *section_addresses;
+    float *data;
 } EntryObject;
 
 #pragma pack()
 
+
+int Entry_traverse(EntryObject *self,
+                   visitproc visit,
+                   void *arg);
+
+int Entry_clear(EntryObject *self);
+
 void Entry_dealloc(EntryObject *self);
 
 int Entry_set_source(EntryObject *self,
-                      PyObject *value,
-                      void *closure);
+                     PyObject *value,
+                     void *closure);
 
 PyObject *Entry_get_source(const EntryObject *self,
-                            void *closure);
+                           void *closure);
 
 int Entry_set_line(EntryObject *self,
-                    PyObject *value,
-                    void *closure);
+                   PyObject *value,
+                   void *closure);
 
 PyObject *Entry_get_line(const EntryObject *self,
-                          void *closure);
+                         void *closure);
 
 
 int Entry_set_telescope(EntryObject *self,
-                         PyObject *value,
-                         void *closure);
+                        PyObject *value,
+                        void *closure);
 
 PyObject *Entry_get_telescope(const EntryObject *self,
-                               void *closure);
+                              void *closure);
+
+Py_ssize_t Entry_length(const EntryObject *self);
+
+PyObject *Entry_item(const EntryObject *self,
+                     Py_ssize_t index);
+
+int Entry_ass_item(const EntryObject *self,
+                   Py_ssize_t index,
+                   PyObject *value);
 
 extern PyMemberDef Entry_members[];
 
 extern PyGetSetDef Entry_getset[];
+
+extern PySequenceMethods Entry_sequence_methods;
 
 extern PyTypeObject EntryType;

@@ -11,4 +11,7 @@ add_library(${PROJECT_NAME} SHARED
         Utils.c
 )
 
+target_include_directories(${PROJECT_NAME} PRIVATE
+        "/usr/include/python3.13",
+)
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "gildascontainer")

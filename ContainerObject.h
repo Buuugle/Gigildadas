@@ -1,6 +1,6 @@
 #pragma once
 
-#include <python3.13/Python.h>
+#include <Python.h>
 
 #include "Utils.h"
 
@@ -46,6 +46,9 @@ PyObject *Container_get_entry_count(const ContainerObject *self,
 
 PyObject *Container_get_entries(const ContainerObject *self,
                                 PyObject *args);
+
+PyObject *Container_get_data(const ContainerObject *self,
+                             PyObject *args);
 
 extern PyMethodDef Container_methods[];
 

@@ -3,10 +3,27 @@
 #include "EntryObject.h"
 
 
-void Entry_dealloc(EntryObject *self) {
+int Entry_traverse(EntryObject *self,
+                   visitproc visit,
+                   void *arg) {
+    return 0;
+}
+
+int Entry_clear(EntryObject *self) {
     PyMem_Free(self->section_identifiers);
     PyMem_Free(self->section_lengths);
     PyMem_Free(self->section_addresses);
+    PyMem_Free(self->data);
+    self->section_identifiers = NULL;
+    self->section_lengths = NULL;
+    self->section_addresses = NULL;
+    self->data = NULL;
+    return 0;
+}
+
+void Entry_dealloc(EntryObject *self) {
+    PyObject_GC_UnTrack(self);
+    Entry_clear(self);
     Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
@@ -34,6 +51,7 @@ int Entry_set_source(EntryObject *self,
     }
     wcstombs(self->source, str, length);
     PyMem_Free(str);
+    str = NULL;
     return 0;
 }
 
@@ -65,6 +83,7 @@ int Entry_set_line(EntryObject *self,
     }
     wcstombs(self->line, str, length);
     PyMem_Free(str);
+    str = NULL;
     return 0;
 }
 
@@ -96,6 +115,7 @@ int Entry_set_telescope(EntryObject *self,
     }
     wcstombs(self->telescope, str, length);
     PyMem_Free(str);
+    str = NULL;
     return 0;
 }
 
@@ -187,14 +207,66 @@ PyGetSetDef Entry_getset[] = {
     {NULL}
 };
 
+Py_ssize_t Entry_length(const EntryObject *self) {
+    if (!self->data) {
+        return 0;
+    }
+    return self->data_length;
+}
+
+PyObject *Entry_item(const EntryObject *self,
+                     const Py_ssize_t index) {
+    if (!self->data) {
+        PyErr_SetString(PyExc_AttributeError, "No data in entry");
+        return NULL;
+    }
+    if (index < 0 || index >= self->data_length) {
+        PyErr_SetString(PyExc_IndexError, "Index out of range");
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->data[index]);
+}
+
+int Entry_ass_item(const EntryObject *self,
+                   const Py_ssize_t index,
+                   PyObject *value) {
+    if (!self->data) {
+        PyErr_SetString(PyExc_AttributeError, "No data in entry");
+        return -1;
+    }
+    if (index < 0 || index >= self->data_length) {
+        PyErr_SetString(PyExc_IndexError, "Index out of range");
+        return -1;
+    }
+    if (!value) {
+        PyErr_SetString(PyExc_ValueError, "Cannot delete data");
+        return -1;
+    }
+    const double temp = PyFloat_AsDouble(value);
+    if (PyErr_Occurred()) {
+        return -1;
+    }
+    self->data[index] = (float) temp;
+    return 0;
+}
+
+PySequenceMethods Entry_sequence_methods = {
+    .sq_length = (lenfunc) Entry_length,
+    .sq_item = (ssizeargfunc) Entry_item,
+    .sq_ass_item = (ssizeobjargproc) Entry_ass_item
+};
+
 PyTypeObject EntryType = {
     .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = "Entry",
     .tp_basicsize = sizeof(EntryObject),
     .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,
+    .tp_traverse = (traverseproc) Entry_traverse,
+    .tp_clear = (inquiry) Entry_clear,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = (destructor) Entry_dealloc,
     .tp_members = Entry_members,
-    .tp_getset = Entry_getset
+    .tp_getset = Entry_getset,
+    .tp_as_sequence = &Entry_sequence_methods
 };
