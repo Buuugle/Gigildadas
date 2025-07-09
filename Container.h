@@ -50,6 +50,9 @@ PyObject *Container_get_headers(const ContainerObject *self,
 PyObject *Container_get_data(const ContainerObject *self,
                              PyObject *args);
 
+PyObject *Container_get_sections(const ContainerObject *self,
+                                 PyObject *args);
+
 extern PyMethodDef Container_methods[];
 
 extern PyTypeObject ContainerType;

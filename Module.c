@@ -2,7 +2,7 @@
 #define PY_ARRAY_UNIQUE_SYMBOL Module
 #include <numpy/arrayobject.h>
 
-#include  "Container.h"
+#include "Container.h"
 #include "Header.h"
 #include "Sections.h"
 
@@ -15,16 +15,16 @@ static int exec(PyObject *module) {
         return -1;
     }
 
-    if (PyType_Ready(&HeaderType) < 0) {
+    if (PyType_Ready(&GeneralSectionType) < 0) {
         return -1;
     }
-    if (PyModule_AddObjectRef(module, "Header", (PyObject *) &HeaderType) < 0) {
+    if (PyModule_AddObjectRef(module, "Header", (PyObject *) &GeneralSectionType) < 0) {
         return -1;
     }
     PyObject_SetAttrString(module, "GENERAL_SECTION_ID", PyLong_FromLong(GENERAL_SECTION_ID));
     PyObject_SetAttrString(module, "POSITION_SECTION_ID", PyLong_FromLong(POSITION_SECTION_ID));
-    PyObject_SetAttrString(module, "SPECTROSCOPIC_SECTION_ID", PyLong_FromLong(SPECTROSCOPIC_SECTION_ID));
-    PyObject_SetAttrString(module, "DEFAULT_PLOTTING_SECTION_ID", PyLong_FromLong(DEFAULT_PLOTTING_SECTION_ID));
+    PyObject_SetAttrString(module, "SPECTRO_SECTION_ID", PyLong_FromLong(SPECTRO_SECTION_ID));
+    PyObject_SetAttrString(module, "PLOTTING_SECTION_ID", PyLong_FromLong(PLOTTING_SECTION_ID));
     PyObject_SetAttrString(module, "SWITCHING_SECTION_ID", PyLong_FromLong(SWITCHING_SECTION_ID));
     PyObject_SetAttrString(module, "CALIBRATION_SECTION_ID", PyLong_FromLong(CALIBRATION_SECTION_ID));
     return 0;

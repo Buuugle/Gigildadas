@@ -73,8 +73,8 @@ int Header_set_telescope(HeaderObject *self,
 PyObject *Header_get_telescope(const HeaderObject *self,
                                void *closure);
 
-extern PyMemberDef Header_members[];
+extern PyMemberDef GeneralSection_members[];
 
 extern PyGetSetDef Header_getset[];
 
-extern PyTypeObject HeaderType;
+extern PyTypeObject GeneralSectionType;

@@ -122,7 +122,7 @@ PyObject *Header_get_telescope(const HeaderObject *self,
     return unicode_from_chars(self->telescope, sizeof(self->telescope));
 }
 
-PyMemberDef Header_members[] = {
+PyMemberDef GeneralSection_members[] = {
     {
         .name = "number",
         .type = Py_T_LONG,
@@ -206,7 +206,7 @@ PyGetSetDef Header_getset[] = {
 };
 
 
-PyTypeObject HeaderType = {
+PyTypeObject GeneralSectionType = {
     .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = "Header",
     .tp_basicsize = sizeof(HeaderObject),
@@ -216,6 +216,6 @@ PyTypeObject HeaderType = {
     .tp_clear = (inquiry) Header_clear,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = (destructor) Header_dealloc,
-    .tp_members = Header_members,
+    .tp_members = GeneralSection_members,
     .tp_getset = Header_getset
 };

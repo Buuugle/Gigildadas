@@ -118,7 +118,7 @@ PyObject *Container_get_headers(const ContainerObject *self,
                       + p_start * header_size,
                       SEEK_SET);
                 for (long j = p_start; j < p_end; ++j) {
-                    entries[index] = (HeaderObject *) HeaderType.tp_alloc(&HeaderType, 1);
+                    entries[index] = (HeaderObject *) GeneralSectionType.tp_alloc(&GeneralSectionType, 1);
                     fread_unlocked(&entries[index]->descriptor_record,
                                    header_size, 1,
                                    self->input_file);
@@ -204,7 +204,7 @@ PyObject *Container_get_data(const ContainerObject *self,
     npy_intp data_length = 0;
     for (npy_intp i = 0; i < entry_count; ++i) {
         PyObject *object = entries[i];
-        if (!PyObject_TypeCheck(object, &HeaderType)) {
+        if (!PyObject_TypeCheck(object, &GeneralSectionType)) {
             Py_DECREF(sequence);
             PyErr_SetString(PyExc_TypeError, "Object is not a Entry");
             return NULL;
