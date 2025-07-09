@@ -44,7 +44,7 @@ PyObject *Container_set_input(ContainerObject *self,
 PyObject *Container_get_entry_count(const ContainerObject *self,
                                     PyObject *Py_UNUSED(ignored));
 
-PyObject *Container_get_entries(const ContainerObject *self,
+PyObject *Container_get_headers(const ContainerObject *self,
                                 PyObject *args);
 
 PyObject *Container_get_data(const ContainerObject *self,

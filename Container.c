@@ -3,8 +3,8 @@
 #define PY_ARRAY_UNIQUE_SYMBOL Module
 #include <numpy/arrayobject.h>
 
-#include "ContainerObject.h"
-#include "EntryObject.h"
+#include "Container.h"
+#include "Header.h"
 #include "Utils.h"
 
 int Container_traverse(ContainerObject *self,
@@ -73,7 +73,7 @@ PyObject *Container_set_input(ContainerObject *self,
     return Py_NewRef(Py_None);
 }
 
-PyObject *Container_get_entries(const ContainerObject *self,
+PyObject *Container_get_headers(const ContainerObject *self,
                                 PyObject *args) {
     if (!self->extension_records) {
         PyErr_SetString(PyExc_AttributeError, "No input file");
@@ -99,8 +99,8 @@ PyObject *Container_get_entries(const ContainerObject *self,
     }
 
     long cumul_size = 0;
-    const long header_size = offsetof(EntryObject, identifier) - offsetof(EntryObject, descriptor_record);
-    EntryObject *entries[entry_count];
+    const long header_size = offsetof(HeaderObject, identifier) - offsetof(HeaderObject, descriptor_record);
+    HeaderObject *entries[entry_count];
     size_t index = 0;
     flockfile(self->input_file);
 
@@ -118,7 +118,7 @@ PyObject *Container_get_entries(const ContainerObject *self,
                       + p_start * header_size,
                       SEEK_SET);
                 for (long j = p_start; j < p_end; ++j) {
-                    entries[index] = (EntryObject *) EntryType.tp_alloc(&EntryType, 1);
+                    entries[index] = (HeaderObject *) HeaderType.tp_alloc(&HeaderType, 1);
                     fread_unlocked(&entries[index]->descriptor_record,
                                    header_size, 1,
                                    self->input_file);
@@ -132,9 +132,9 @@ PyObject *Container_get_entries(const ContainerObject *self,
         cumul_size = next_cumul;
     }
 
-    const long descriptor_size = offsetof(EntryObject, section_identifiers) - offsetof(EntryObject, identifier);
+    const long descriptor_size = offsetof(HeaderObject, section_identifiers) - offsetof(HeaderObject, identifier);
     for (int i = 0; i < entry_count; ++i) {
-        EntryObject *entry = entries[i];
+        HeaderObject *entry = entries[i];
         const long descriptor_address = self->record_length * (entry->descriptor_record - 1)
                                         + entry->descriptor_word - 1;
 
@@ -148,11 +148,9 @@ PyObject *Container_get_entries(const ContainerObject *self,
         entry->section_identifiers = PyMem_Malloc(entry->section_count * sizeof(int));
         entry->section_lengths = PyMem_Malloc(entry->section_count * sizeof(long));
         entry->section_addresses = PyMem_Malloc(entry->section_count * sizeof(long));
-        entry->data = PyMem_Malloc(entry->data_length * sizeof(float));
         if (!entry->section_identifiers ||
             !entry->section_lengths ||
-            !entry->section_addresses ||
-            !entry->data) {
+            !entry->section_addresses) {
             PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory");
             Py_DECREF(list);
             funlockfile(self->input_file);
@@ -167,14 +165,6 @@ PyObject *Container_get_entries(const ContainerObject *self,
         fread_unlocked(entry->section_addresses,
                        sizeof(long), entry->section_count,
                        self->input_file);
-
-        fseek(self->input_file,
-              (descriptor_address + entry->data_address - 1) * WORD_LENGTH,
-              SEEK_SET);
-        fread_unlocked(entry->data,
-                       sizeof(float), entry->data_length,
-                       self->input_file);
-
         PyList_SET_ITEM(list, i, entry);
         entries[i] = NULL;
     }
@@ -214,12 +204,12 @@ PyObject *Container_get_data(const ContainerObject *self,
     npy_intp data_length = 0;
     for (npy_intp i = 0; i < entry_count; ++i) {
         PyObject *object = entries[i];
-        if (!PyObject_TypeCheck(object, &EntryType)) {
+        if (!PyObject_TypeCheck(object, &HeaderType)) {
             Py_DECREF(sequence);
             PyErr_SetString(PyExc_TypeError, "Object is not a Entry");
             return NULL;
         }
-        const EntryObject *entry = (EntryObject *) object;
+        const HeaderObject *entry = (HeaderObject *) object;
         if (entry->data_length > data_length) {
             data_length = entry->data_length;
         }
@@ -229,11 +219,11 @@ PyObject *Container_get_data(const ContainerObject *self,
         PyErr_SetString(PyExc_TypeError, "No data found");
         return NULL;
     }
-
+    
     float *data = calloc(entry_count * data_length, sizeof(float));
     flockfile(self->input_file);
     for (int i = 0; i < entry_count; ++i) {
-        EntryObject *entry = (EntryObject *) entries[i];
+        HeaderObject *entry = (HeaderObject *) entries[i];
         const long descriptor_address = self->record_length * (entry->descriptor_record - 1)
                                         + entry->descriptor_word - 1;
         fseek(self->input_file,
@@ -271,8 +261,8 @@ PyMethodDef Container_methods[] = {
         .ml_flags = METH_NOARGS
     },
     {
-        .ml_name = "get_entries",
-        .ml_meth = (PyCFunction) Container_get_entries,
+        .ml_name = "get_headers",
+        .ml_meth = (PyCFunction) Container_get_headers,
         .ml_flags = METH_VARARGS
     },
     {
