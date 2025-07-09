@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.31)
-project(PythonGildasContainer C)
+project(Gigildas C)
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
@@ -10,9 +10,10 @@ add_library(${PROJECT_NAME} SHARED
         Header.c
         Utils.c
         Sections.h
+        Sections.c
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
         "/usr/include/python3.13"
 )
-set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "gildascontainer")
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "gigildas")

@@ -44,12 +44,12 @@ static PyModuleDef_Slot slots[] = {
 
 static PyModuleDef module = {
     .m_base = PyModuleDef_HEAD_INIT,
-    .m_name = "gildascontainer",
+    .m_name = "gigildas",
     .m_size = 0,
     .m_slots = slots
 };
 
-PyMODINIT_FUNC PyInit_gildascontainer() {
+PyMODINIT_FUNC PyInit_gigildas() {
     import_array()
     return PyModuleDef_Init(&module);
 }

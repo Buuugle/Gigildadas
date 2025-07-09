@@ -7,6 +7,9 @@
 #include "Header.h"
 #include "Utils.h"
 
+#define NO_INPUT_FILE_ERROR PyErr_SetString(PyExc_AttributeError, "no input file")
+
+
 int Container_traverse(ContainerObject *self,
                        visitproc visit,
                        void *arg) {
@@ -48,7 +51,7 @@ PyObject *Container_set_input(ContainerObject *self,
 
     self->input_file = fopen(filename, "rb");
     if (!self->input_file) {
-        PyErr_SetString(PyExc_IOError, "File could not be opened");
+        PyErr_SetString(PyExc_IOError, "file could not be opened");
         return NULL;
     }
 
@@ -60,7 +63,7 @@ PyObject *Container_set_input(ContainerObject *self,
 
     void *temp = PyMem_Realloc(self->extension_records, self->extension_count * sizeof(long));
     if (!temp) {
-        PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for extension_records");
+        MEMORY_ALLOCATION_ERROR;
         funlockfile(self->input_file);
         return NULL;
     }
@@ -76,7 +79,7 @@ PyObject *Container_set_input(ContainerObject *self,
 PyObject *Container_get_headers(const ContainerObject *self,
                                 PyObject *args) {
     if (!self->extension_records) {
-        PyErr_SetString(PyExc_AttributeError, "No input file");
+        NO_INPUT_FILE_ERROR;
         return NULL;
     }
 
@@ -87,14 +90,14 @@ PyObject *Container_get_headers(const ContainerObject *self,
         return NULL;
     }
     if (start >= end || start < 0 || end > entry_count) {
-        PyErr_SetString(PyExc_IndexError, "Invalid range");
+        PyErr_SetString(PyExc_IndexError, "range out of bound");
         return NULL;
     }
     entry_count = end - start;
 
     PyObject *list = PyList_New(entry_count);
     if (!list) {
-        PyErr_SetString(PyExc_ValueError, "Cannot create list");
+        MEMORY_ALLOCATION_ERROR;
         return NULL;
     }
 
@@ -151,7 +154,7 @@ PyObject *Container_get_headers(const ContainerObject *self,
         if (!entry->section_identifiers ||
             !entry->section_lengths ||
             !entry->section_addresses) {
-            PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory");
+            MEMORY_ALLOCATION_ERROR;
             Py_DECREF(list);
             funlockfile(self->input_file);
             return NULL;
@@ -176,7 +179,7 @@ PyObject *Container_get_headers(const ContainerObject *self,
 PyObject *Container_get_entry_count(const ContainerObject *self,
                                     PyObject *Py_UNUSED(ignored)) {
     if (!self->extension_records) {
-        PyErr_SetString(PyExc_AttributeError, "No input file");
+        NO_INPUT_FILE_ERROR;
         return NULL;
     }
     return PyLong_FromLong(self->next_entry - 1);
@@ -185,7 +188,7 @@ PyObject *Container_get_entry_count(const ContainerObject *self,
 PyObject *Container_get_data(const ContainerObject *self,
                              PyObject *args) {
     if (!self->extension_records) {
-        PyErr_SetString(PyExc_AttributeError, "No input file");
+        NO_INPUT_FILE_ERROR;
         return NULL;
     }
 
@@ -194,7 +197,7 @@ PyObject *Container_get_data(const ContainerObject *self,
         return NULL;
     }
 
-    PyObject *sequence = PySequence_Fast(arg, "Argument must be a sequence");
+    PyObject *sequence = PySequence_Fast(arg, "argument is not a sequence");
     if (!sequence) {
         return NULL;
     }
@@ -206,7 +209,7 @@ PyObject *Container_get_data(const ContainerObject *self,
         PyObject *object = entries[i];
         if (!PyObject_TypeCheck(object, &GeneralSectionType)) {
             Py_DECREF(sequence);
-            PyErr_SetString(PyExc_TypeError, "Object is not a Entry");
+            PyErr_SetString(PyExc_TypeError, "element is not a Header");
             return NULL;
         }
         const HeaderObject *entry = (HeaderObject *) object;
@@ -214,13 +217,12 @@ PyObject *Container_get_data(const ContainerObject *self,
             data_length = entry->data_length;
         }
     }
-    if (data_length <= 0) {
-        Py_DECREF(sequence);
-        PyErr_SetString(PyExc_TypeError, "No data found");
+
+    float *data = calloc(entry_count * data_length, sizeof(float));
+    if (!data) {
+        MEMORY_ALLOCATION_ERROR;
         return NULL;
     }
-    
-    float *data = calloc(entry_count * data_length, sizeof(float));
     flockfile(self->input_file);
     for (int i = 0; i < entry_count; ++i) {
         HeaderObject *entry = (HeaderObject *) entries[i];
@@ -241,7 +243,7 @@ PyObject *Container_get_data(const ContainerObject *self,
     PyObject *array = PyArray_SimpleNewFromData(2, dims, NPY_FLOAT, data);
     if (!array) {
         free(data);
-        PyErr_SetString(PyExc_ValueError, "Cannot create array");
+        MEMORY_ALLOCATION_ERROR;
         return NULL;
     }
     PyArray_ENABLEFLAGS((PyArrayObject *) array, NPY_ARRAY_OWNDATA);
@@ -275,7 +277,7 @@ PyMethodDef Container_methods[] = {
 
 PyTypeObject ContainerType = {
     .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "gildascontainer.Container",
+    .tp_name = "gigildas.Container",
     .tp_basicsize = sizeof(ContainerObject),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,

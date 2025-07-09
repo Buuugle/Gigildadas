@@ -28,98 +28,34 @@ void Header_dealloc(HeaderObject *self) {
 int Header_set_source(HeaderObject *self,
                       PyObject *value,
                       void *closure) {
-    if (!value) {
-        PyErr_SetString(PyExc_TypeError, "Cannot delete source");
-        return -1;
-    }
-    if (!PyUnicode_Check(value)) {
-        PyErr_SetString(PyExc_TypeError, "Source must be a string");
-        return -1;
-    }
-    const long length = sizeof(self->source);
-    Py_ssize_t arg_length;
-    wchar_t *str = PyUnicode_AsWideCharString(value, &arg_length);
-    if (!str) {
-        return -1;
-    }
-    printf("%ld\n", arg_length);
-    if (arg_length < length) {
-        PyErr_SetString(PyExc_ValueError, "Wrong length");
-        return -1;
-    }
-    wcstombs(self->source, str, length);
-    PyMem_Free(str);
-    str = NULL;
-    return 0;
+    UNICODE_TO_CHARS(self->source, value)
 }
 
 PyObject *Header_get_source(const HeaderObject *self,
                             void *closure) {
-    return unicode_from_chars(self->source, sizeof(self->source));
+    CHARS_TO_UNICODE(self->source)
 }
 
 int Header_set_line(HeaderObject *self,
                     PyObject *value,
                     void *closure) {
-    if (!value) {
-        PyErr_SetString(PyExc_TypeError, "Cannot delete line");
-        return -1;
-    }
-    if (!PyUnicode_Check(value)) {
-        PyErr_SetString(PyExc_TypeError, "Line must be a string");
-        return -1;
-    }
-    const long length = sizeof(self->line);
-    Py_ssize_t arg_length;
-    wchar_t *str = PyUnicode_AsWideCharString(value, &arg_length);
-    if (!str) {
-        return -1;
-    }
-    if (arg_length < length) {
-        PyErr_SetString(PyExc_ValueError, "Wrong length");
-        return -1;
-    }
-    wcstombs(self->line, str, length);
-    PyMem_Free(str);
-    str = NULL;
-    return 0;
+    UNICODE_TO_CHARS(self->line, value)
 }
 
 PyObject *Header_get_line(const HeaderObject *self,
                           void *closure) {
-    return unicode_from_chars(self->line, sizeof(self->line));
+    CHARS_TO_UNICODE(self->line)
 }
 
 int Header_set_telescope(HeaderObject *self,
                          PyObject *value,
                          void *closure) {
-    if (!value) {
-        PyErr_SetString(PyExc_TypeError, "Cannot delete telescope");
-        return -1;
-    }
-    if (!PyUnicode_Check(value)) {
-        PyErr_SetString(PyExc_TypeError, "Telescope must be a string");
-        return -1;
-    }
-    const long length = sizeof(self->telescope);
-    Py_ssize_t arg_length;
-    wchar_t *str = PyUnicode_AsWideCharString(value, &arg_length);
-    if (!str) {
-        return -1;
-    }
-    if (arg_length < length) {
-        PyErr_SetString(PyExc_ValueError, "Wrong length");
-        return -1;
-    }
-    wcstombs(self->telescope, str, length);
-    PyMem_Free(str);
-    str = NULL;
-    return 0;
+    UNICODE_TO_CHARS(self->telescope, value)
 }
 
 PyObject *Header_get_telescope(const HeaderObject *self,
                                void *closure) {
-    return unicode_from_chars(self->telescope, sizeof(self->telescope));
+    CHARS_TO_UNICODE(self->telescope)
 }
 
 PyMemberDef GeneralSection_members[] = {

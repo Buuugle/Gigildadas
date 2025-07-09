@@ -127,6 +127,13 @@ PyObject *PositionSection_clear(GeneralSectionObject *self);
 
 void PositionSection_dealloc(GeneralSectionObject *self);
 
+PyObject *PositionSection_get_source(const PositionSectionObject *self,
+                                     void *closure);
+
+PyObject *PositionSection_set_source(const PositionSectionObject *self,
+                                     PyObject *value,
+                                     void *closure);
+
 
 PyObject *SpectroSection_traverse(GeneralSectionObject *self,
                                   visitproc visit,
@@ -136,7 +143,12 @@ PyObject *SpectroSection_clear(GeneralSectionObject *self);
 
 void SpectroSection_dealloc(GeneralSectionObject *self);
 
-PyObject *SpectroSection_get_source
+PyObject *SpectroSection_get_line(const SpectroSectionObject *self,
+                                  void *closure);
+
+PyObject *SpectroSection_set_line(const SpectroSectionObject *self,
+                                  PyObject *value,
+                                  void *closure);
 
 
 PyObject *PlotSection_traverse(GeneralSectionObject *self,
