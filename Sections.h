@@ -109,73 +109,152 @@ typedef struct CalibrationSectionObject {
 
 #pragma pack()
 
+typedef int (*read_func)(PyObject *, FILE *);
 
-PyObject *GeneralSection_traverse(GeneralSectionObject *self,
-                                  visitproc visit,
-                                  void *arg);
+struct SectionReader {
+    PyTypeObject *type;
+    read_func read;
+};
 
-PyObject *GeneralSection_clear(GeneralSectionObject *self);
+struct SectionReader SectionReader_get(int id);
+
+
+int GeneralSection_traverse(GeneralSectionObject *self,
+                            visitproc visit,
+                            void *arg);
+
+int GeneralSection_clear(GeneralSectionObject *self);
 
 void GeneralSection_dealloc(GeneralSectionObject *self);
 
+int GeneralSection_read(GeneralSectionObject *self,
+                        FILE *file);
 
-PyObject *PositionSection_traverse(GeneralSectionObject *self,
-                                   visitproc visit,
-                                   void *arg);
 
-PyObject *PositionSection_clear(GeneralSectionObject *self);
+int PositionSection_traverse(PositionSectionObject *self,
+                             visitproc visit,
+                             void *arg);
 
-void PositionSection_dealloc(GeneralSectionObject *self);
+int PositionSection_clear(PositionSectionObject *self);
+
+void PositionSection_dealloc(PositionSectionObject *self);
+
+PyObject *PositionSection_new(PyTypeObject *type,
+                              PyObject *args,
+                              PyObject *kwds);
+
+int PositionSection_read(PositionSectionObject *self,
+                         FILE *file);
 
 PyObject *PositionSection_get_source(const PositionSectionObject *self,
                                      void *closure);
 
-PyObject *PositionSection_set_source(const PositionSectionObject *self,
-                                     PyObject *value,
-                                     void *closure);
+int PositionSection_set_source(PositionSectionObject *self,
+                               PyObject *value,
+                               void *closure);
 
 
-PyObject *SpectroSection_traverse(GeneralSectionObject *self,
-                                  visitproc visit,
-                                  void *arg);
+int SpectroSection_traverse(SpectroSectionObject *self,
+                            visitproc visit,
+                            void *arg);
 
-PyObject *SpectroSection_clear(GeneralSectionObject *self);
+int SpectroSection_clear(SpectroSectionObject *self);
 
-void SpectroSection_dealloc(GeneralSectionObject *self);
+void SpectroSection_dealloc(SpectroSectionObject *self);
+
+PyObject *SpectroSection_new(PyTypeObject *type,
+                             PyObject *args,
+                             PyObject *kwds);
+
+int SpectroSection_read(SpectroSectionObject *self,
+                        FILE *file);
 
 PyObject *SpectroSection_get_line(const SpectroSectionObject *self,
                                   void *closure);
 
-PyObject *SpectroSection_set_line(const SpectroSectionObject *self,
+int SpectroSection_set_line(SpectroSectionObject *self,
+                            PyObject *value,
+                            void *closure);
+
+
+int PlotSection_traverse(PlotSectionObject *self,
+                         visitproc visit,
+                         void *arg);
+
+int PlotSection_clear(PlotSectionObject *self);
+
+void PlotSection_dealloc(PlotSectionObject *self);
+
+int PlotSection_read(PlotSectionObject *self,
+                     FILE *file);
+
+
+int SwitchSection_traverse(SwitchSectionObject *self,
+                           visitproc visit,
+                           void *arg);
+
+int SwitchSection_clear(SwitchSectionObject *self);
+
+void SwitchSection_dealloc(SwitchSectionObject *self);
+
+int SwitchSection_read(SwitchSectionObject *self,
+                       FILE *file);
+
+int SwitchSection_alloc_arrays(SwitchSectionObject *self);
+
+PyObject *SwitchSection_get_phase_count(const SwitchSectionObject *self,
+                                        void *closure);
+
+int SwitchSection_set_phase_count(SwitchSectionObject *self,
                                   PyObject *value,
                                   void *closure);
 
+PyObject *SwitchSection_get_frequency_offsets(const SwitchSectionObject *self,
+                                              void *closure);
 
-PyObject *PlotSection_traverse(GeneralSectionObject *self,
-                               visitproc visit,
-                               void *arg);
+int SwitchSection_set_frequency_offsets(SwitchSectionObject *self,
+                                        PyObject *value,
+                                        void *closure);
 
-PyObject *PlotSection_clear(GeneralSectionObject *self);
+PyObject *SwitchSection_get_times(const SwitchSectionObject *self,
+                                  void *closure);
 
-void PlotSection_dealloc(GeneralSectionObject *self);
+int SwitchSection_set_times(SwitchSectionObject *self,
+                            PyObject *value,
+                            void *closure);
+
+PyObject *SwitchSection_get_weights(const SwitchSectionObject *self,
+                                    void *closure);
+
+int SwitchSection_set_weights(SwitchSectionObject *self,
+                              PyObject *value,
+                              void *closure);
+
+PyObject *SwitchSection_get_beta_offsets(const SwitchSectionObject *self,
+                                         void *closure);
+
+int SwitchSection_set_beta_offsets(SwitchSectionObject *self,
+                                   PyObject *value,
+                                   void *closure);
+
+PyObject *SwitchSection_get_lambda_offsets(const SwitchSectionObject *self,
+                                           void *closure);
+
+int SwitchSection_set_lambda_offsets(SwitchSectionObject *self,
+                                     PyObject *value,
+                                     void *closure);
 
 
-PyObject *SwitchSection_traverse(GeneralSectionObject *self,
-                                 visitproc visit,
-                                 void *arg);
+int CalibrationSection_traverse(CalibrationSectionObject *self,
+                                visitproc visit,
+                                void *arg);
 
-PyObject *SwitchSection_clear(GeneralSectionObject *self);
+int CalibrationSection_clear(CalibrationSectionObject *self);
 
-void SwitchSection_dealloc(GeneralSectionObject *self);
+void CalibrationSection_dealloc(CalibrationSectionObject *self);
 
-
-PyObject *CalibrationSection_traverse(GeneralSectionObject *self,
-                                      visitproc visit,
-                                      void *arg);
-
-PyObject *CalibrationSection_clear(GeneralSectionObject *self);
-
-void CalibrationSection_dealloc(GeneralSectionObject *self);
+int CalibrationSection_read(CalibrationSectionObject *self,
+                            FILE *file);
 
 
 extern PyMemberDef GeneralSection_members[];
@@ -189,11 +268,12 @@ extern PyMemberDef SpectroSection_members[];
 extern PyGetSetDef SpectroSection_getset[];
 extern PyTypeObject SpectroSectionType;
 
-extern PyMemberDef PlottingSection_members[];
-extern PyTypeObject PlottingSectionType;
+extern PyMemberDef PlotSection_members[];
+extern PyTypeObject PlotSectionType;
 
-extern PyMemberDef SwitchingSection_members[];
-extern PyTypeObject SwitchingSectionType;
+extern PyMemberDef SwitchSection_members[];
+extern PyGetSetDef SwitchSection_getset[];
+extern PyTypeObject SwitchSectionType;
 
 extern PyMemberDef CalibrationSection_members[];
 extern PyTypeObject CalibrationSectionType;

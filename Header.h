@@ -51,6 +51,10 @@ int Header_clear(HeaderObject *self);
 
 void Header_dealloc(HeaderObject *self);
 
+PyObject *Header_new(PyTypeObject *type,
+                     PyObject *arg,
+                     PyObject *kwds);
+
 int Header_set_source(HeaderObject *self,
                       PyObject *value,
                       void *closure);
@@ -73,8 +77,8 @@ int Header_set_telescope(HeaderObject *self,
 PyObject *Header_get_telescope(const HeaderObject *self,
                                void *closure);
 
-extern PyMemberDef GeneralSection_members[];
+extern PyMemberDef Header_members[];
 
 extern PyGetSetDef Header_getset[];
 
-extern PyTypeObject GeneralSectionType;
+extern PyTypeObject HeaderType;

@@ -6,21 +6,26 @@
 #include "Header.h"
 #include "Sections.h"
 
+#define REGISTER_TYPE(TYPE, NAME)                                      \
+    if (PyType_Ready(&TYPE) < 0) {                                     \
+        return -1;                                                     \
+    }                                                                  \
+    if (PyModule_AddObjectRef(module, NAME, (PyObject *) &TYPE) < 0) { \
+        return -1;                                                     \
+    }
+
 
 static int exec(PyObject *module) {
-    if (PyType_Ready(&ContainerType) < 0) {
-        return -1;
-    }
-    if (PyModule_AddObjectRef(module, "Container", (PyObject *) &ContainerType) < 0) {
-        return -1;
-    }
+    REGISTER_TYPE(ContainerType, "Container")
+    REGISTER_TYPE(HeaderType, "Header")
 
-    if (PyType_Ready(&GeneralSectionType) < 0) {
-        return -1;
-    }
-    if (PyModule_AddObjectRef(module, "Header", (PyObject *) &GeneralSectionType) < 0) {
-        return -1;
-    }
+    REGISTER_TYPE(GeneralSectionType, "GeneralSection")
+    REGISTER_TYPE(PositionSectionType, "PositionSection")
+    REGISTER_TYPE(SpectroSectionType, "SpectroSection")
+    REGISTER_TYPE(PlotSectionType, "PlotSection")
+    REGISTER_TYPE(SwitchSectionType, "SwitchSection")
+    REGISTER_TYPE(CalibrationSectionType, "CalibrationSection")
+
     PyObject_SetAttrString(module, "GENERAL_SECTION_ID", PyLong_FromLong(GENERAL_SECTION_ID));
     PyObject_SetAttrString(module, "POSITION_SECTION_ID", PyLong_FromLong(POSITION_SECTION_ID));
     PyObject_SetAttrString(module, "SPECTRO_SECTION_ID", PyLong_FromLong(SPECTRO_SECTION_ID));

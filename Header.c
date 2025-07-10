@@ -25,40 +25,53 @@ void Header_dealloc(HeaderObject *self) {
     Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
+PyObject *Header_new(PyTypeObject *type,
+                     PyObject *arg,
+                     PyObject *kwds) {
+    HeaderObject *self = (HeaderObject *) type->tp_alloc(type, 0);
+    if (self == NULL) {
+        return NULL;
+    }
+    INIT_STRING(self->source)
+    INIT_STRING(self->line)
+    INIT_STRING(self->telescope)
+    return (PyObject *) self;
+}
+
 int Header_set_source(HeaderObject *self,
                       PyObject *value,
                       void *closure) {
-    UNICODE_TO_CHARS(self->source, value)
+    UNICODE_TO_STRING(self->source, value)
 }
 
 PyObject *Header_get_source(const HeaderObject *self,
                             void *closure) {
-    CHARS_TO_UNICODE(self->source)
+    STRING_TO_UNICODE(self->source)
 }
 
 int Header_set_line(HeaderObject *self,
                     PyObject *value,
                     void *closure) {
-    UNICODE_TO_CHARS(self->line, value)
+    UNICODE_TO_STRING(self->line, value)
 }
 
 PyObject *Header_get_line(const HeaderObject *self,
                           void *closure) {
-    CHARS_TO_UNICODE(self->line)
+    STRING_TO_UNICODE(self->line)
 }
 
 int Header_set_telescope(HeaderObject *self,
                          PyObject *value,
                          void *closure) {
-    UNICODE_TO_CHARS(self->telescope, value)
+    UNICODE_TO_STRING(self->telescope, value)
 }
 
 PyObject *Header_get_telescope(const HeaderObject *self,
                                void *closure) {
-    CHARS_TO_UNICODE(self->telescope)
+    STRING_TO_UNICODE(self->telescope)
 }
 
-PyMemberDef GeneralSection_members[] = {
+PyMemberDef Header_members[] = {
     {
         .name = "number",
         .type = Py_T_LONG,
@@ -142,7 +155,7 @@ PyGetSetDef Header_getset[] = {
 };
 
 
-PyTypeObject GeneralSectionType = {
+PyTypeObject HeaderType = {
     .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = "Header",
     .tp_basicsize = sizeof(HeaderObject),
@@ -150,8 +163,8 @@ PyTypeObject GeneralSectionType = {
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,
     .tp_traverse = (traverseproc) Header_traverse,
     .tp_clear = (inquiry) Header_clear,
-    .tp_new = PyType_GenericNew,
+    .tp_new = Header_new,
     .tp_dealloc = (destructor) Header_dealloc,
-    .tp_members = GeneralSection_members,
+    .tp_members = Header_members,
     .tp_getset = Header_getset
 };
