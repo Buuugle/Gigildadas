@@ -16,4 +16,7 @@ add_library(${PROJECT_NAME} SHARED
 target_include_directories(${PROJECT_NAME} PRIVATE
         "/usr/include/python3.13"
 )
-set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "container")
+set_target_properties(${PROJECT_NAME} PROPERTIES
+        OUTPUT_NAME "container"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/../gigildas"
+)
