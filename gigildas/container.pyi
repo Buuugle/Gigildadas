@@ -2,22 +2,46 @@ from typing import Sequence
 import numpy.typing as npt
 
 
-class GeneralSection: ...
+class GeneralSection:
+    ID: int
+
+    def __init__(self) -> None:
+        ...
 
 
-class PositionSection: ...
+class PositionSection:
+    ID: int
+
+    def __init__(self) -> None:
+        ...
 
 
-class SpectroSection: ...
+class SpectroSection:
+    ID: int
+
+    def __init__(self) -> None:
+        ...
 
 
-class PlotSection: ...
+class PlotSection:
+    ID: int
+
+    def __init__(self) -> None:
+        ...
 
 
-class SwitchSection: ...
+class SwitchSection:
+    ID: int
+
+    def __init__(self) -> None:
+        ...
 
 
-class CalibrationSection: ...
+class CalibrationSection:
+    ID: int
+
+    def __init__(self) -> None:
+        ...
 
 
 class Header:
