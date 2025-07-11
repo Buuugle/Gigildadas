@@ -3,41 +3,16 @@
 #include "Sections.h"
 
 
-struct SectionReader SectionReader_get(const int id) {
-    PyTypeObject *type;
-    read_func read;
+section_read get_section_read(const int id) {
     switch (id) {
-        case GENERAL_SECTION_ID:
-            type = &GeneralSectionType;
-            read = (read_func) GeneralSection_read;
-            break;
-        case POSITION_SECTION_ID:
-            type = &PositionSectionType;
-            read = (read_func) PositionSection_read;
-            break;
-        case SPECTRO_SECTION_ID:
-            type = &SpectroSectionType;
-            read = (read_func) SpectroSection_read;
-            break;
-        case PLOT_SECTION_ID:
-            type = &PlotSectionType;
-            read = (read_func) PlotSection_read;
-            break;
-        case SWITCH_SECTION_ID:
-            type = &SwitchSectionType;
-            read = (read_func) SwitchSection_read;
-            break;
-        case CALIBRATION_SECTION_ID:
-            type = &CalibrationSectionType;
-            read = (read_func) CalibrationSection_read;
-            break;
-        default:
-            type = NULL;
-            read = NULL;
+        case GENERAL_SECTION_ID    : return (section_read) GeneralSection_read;
+        case POSITION_SECTION_ID   : return (section_read) PositionSection_read;
+        case SPECTRO_SECTION_ID    : return (section_read) SpectroSection_read;
+        case PLOT_SECTION_ID       : return (section_read) PlotSection_read;
+        case SWITCH_SECTION_ID     : return (section_read) SwitchSection_read;
+        case CALIBRATION_SECTION_ID: return (section_read) CalibrationSection_read;
+        default                    : return NULL;
     }
-
-    const struct SectionReader reader = {type, read};
-    return reader;
 }
 
 int GeneralSection_traverse(GeneralSectionObject *self,
@@ -464,9 +439,9 @@ PyMemberDef PositionSection_members[] = {
         .offset = offsetof(PositionSectionObject, coordinate_system)
     },
     {
-        .name = "equinox_year",
+        .name = "equinox",
         .type = Py_T_FLOAT,
-        .offset = offsetof(PositionSectionObject, equinox_year)
+        .offset = offsetof(PositionSectionObject, equinox)
     },
     {
         .name = "projection_system",

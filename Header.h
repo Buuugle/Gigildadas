@@ -14,9 +14,9 @@ typedef struct HeaderObject {
     int descriptor_word;
     long number;
     int version;
-    char source[3 * WORD_LENGTH];
-    char line[3 * WORD_LENGTH];
-    char telescope[3 * WORD_LENGTH];
+    char source[3 * WORD_SIZE];
+    char line[3 * WORD_SIZE];
+    char telescope[3 * WORD_SIZE];
     int observation_date;
     int reduction_date;
     float lambda_offset;
@@ -28,7 +28,7 @@ typedef struct HeaderObject {
     long scan;
     int sub_scan;
 
-    char identifier[WORD_LENGTH];
+    char identifier[WORD_SIZE];
     int descriptor_version;
     int section_count;
     long entry_length;

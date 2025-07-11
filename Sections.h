@@ -30,9 +30,9 @@ typedef struct GeneralSectionObject {
 typedef struct PositionSectionObject {
     PyObject_HEAD
 
-    char source[3 * WORD_LENGTH];
+    char source[3 * WORD_SIZE];
     int coordinate_system; // code
-    float equinox_year;
+    float equinox;
     int projection_system; // code
     double center_lambda;
     double center_beta;
@@ -44,7 +44,7 @@ typedef struct PositionSectionObject {
 typedef struct SpectroSectionObject {
     PyObject_HEAD
 
-    char line[3 * WORD_LENGTH];
+    char line[3 * WORD_SIZE];
     double rest_frequency;
     int channel_count;
     float reference_channel;
@@ -109,14 +109,9 @@ typedef struct CalibrationSectionObject {
 
 #pragma pack()
 
-typedef int (*read_func)(PyObject *, FILE *);
+typedef int (*section_read)(PyObject *, FILE *);
 
-struct SectionReader {
-    PyTypeObject *type;
-    read_func read;
-};
-
-struct SectionReader SectionReader_get(int id);
+section_read get_section_read(int id);
 
 
 int GeneralSection_traverse(GeneralSectionObject *self,

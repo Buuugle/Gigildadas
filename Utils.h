@@ -2,7 +2,7 @@
 
 #include <Python.h>
 
-#define WORD_LENGTH 4
+#define WORD_SIZE 4
 
 #define MEMORY_ALLOCATION_ERROR PyErr_SetString(PyExc_MemoryError, "failed to allocate memory")
 #define FILE_READING_ERROR PyErr_SetString(PyExc_FileError, "failed to read file")

@@ -12,7 +12,7 @@ typedef struct ContainerObject {
     FILE *input_file;
     FILE *output_file;
 
-    char file_version[WORD_LENGTH];
+    char file_version[WORD_SIZE];
     int record_length;
     int file_kind;
     int entry_header_version;

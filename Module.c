@@ -14,6 +14,10 @@
         return -1;                                                     \
     }
 
+#define SET_TYPE_CONSTANT(TYPE, NAME, VALUE)         \
+    PyDict_SetItemString(TYPE.tp_dict, NAME, VALUE); \
+    Py_DECREF(VALUE);
+
 
 static int exec(PyObject *module) {
     REGISTER_TYPE(ContainerType, "Container")
@@ -26,12 +30,12 @@ static int exec(PyObject *module) {
     REGISTER_TYPE(SwitchSectionType, "SwitchSection")
     REGISTER_TYPE(CalibrationSectionType, "CalibrationSection")
 
-    PyObject_SetAttrString(module, "GENERAL_SECTION_ID", PyLong_FromLong(GENERAL_SECTION_ID));
-    PyObject_SetAttrString(module, "POSITION_SECTION_ID", PyLong_FromLong(POSITION_SECTION_ID));
-    PyObject_SetAttrString(module, "SPECTRO_SECTION_ID", PyLong_FromLong(SPECTRO_SECTION_ID));
-    PyObject_SetAttrString(module, "PLOT_SECTION_ID", PyLong_FromLong(PLOT_SECTION_ID));
-    PyObject_SetAttrString(module, "SWITCH_SECTION_ID", PyLong_FromLong(SWITCH_SECTION_ID));
-    PyObject_SetAttrString(module, "CALIBRATION_SECTION_ID", PyLong_FromLong(CALIBRATION_SECTION_ID));
+    SET_TYPE_CONSTANT(GeneralSectionType, "ID", PyLong_FromLong(GENERAL_SECTION_ID))
+    SET_TYPE_CONSTANT(PositionSectionType, "ID", PyLong_FromLong(POSITION_SECTION_ID))
+    SET_TYPE_CONSTANT(SpectroSectionType, "ID", PyLong_FromLong(SPECTRO_SECTION_ID))
+    SET_TYPE_CONSTANT(PlotSectionType, "ID", PyLong_FromLong(PLOT_SECTION_ID))
+    SET_TYPE_CONSTANT(SwitchSectionType, "ID", PyLong_FromLong(SWITCH_SECTION_ID))
+    SET_TYPE_CONSTANT(CalibrationSectionType, "ID", PyLong_FromLong(CALIBRATION_SECTION_ID))
     return 0;
 }
 
@@ -49,12 +53,12 @@ static PyModuleDef_Slot slots[] = {
 
 static PyModuleDef module = {
     .m_base = PyModuleDef_HEAD_INIT,
-    .m_name = "gigildas",
+    .m_name = "container",
     .m_size = 0,
     .m_slots = slots
 };
 
-PyMODINIT_FUNC PyInit_gigildas() {
+PyMODINIT_FUNC PyInit_container() {
     import_array()
     return PyModuleDef_Init(&module);
 }
