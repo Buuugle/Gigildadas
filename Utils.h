@@ -103,6 +103,3 @@ long max(long a,
 
 long min(long a,
          long b);
-
-int strcmp_null(const char *str,
-                const char *null_str);

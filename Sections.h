@@ -74,7 +74,7 @@ typedef struct SwitchSectionObject {
     double *frequency_offsets;
     float *times;
     float *weights;
-    int switching_mode; // code
+    int mode; // code
     float *lambda_offsets;
     float *beta_offsets;
 } SwitchSectionObject;

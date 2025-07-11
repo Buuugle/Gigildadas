@@ -221,8 +221,8 @@ int SwitchSection_read(SwitchSectionObject *self,
         || fread_unlocked(self->weights,
                           self->phase_count * sizeof(float), 1,
                           file) != 1
-        || fread_unlocked(&self->switching_mode,
-                          sizeof(self->switching_mode), 1,
+        || fread_unlocked(&self->mode,
+                          sizeof(self->mode), 1,
                           file) != 1
         || fread_unlocked(self->lambda_offsets,
                           self->phase_count * sizeof(float), 1,
@@ -631,9 +631,9 @@ PyTypeObject PlotSectionType = {
 
 PyMemberDef SwitchSection_members[] = {
     {
-        .name = "switching_mode",
+        .name = "mode",
         .type = Py_T_INT,
-        .offset = offsetof(SwitchSectionObject, switching_mode)
+        .offset = offsetof(SwitchSectionObject, mode)
     },
     {NULL}
 };

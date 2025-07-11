@@ -57,7 +57,7 @@ PyObject *Container_set_input(ContainerObject *self,
 
     self->input_file = fopen(filename, "rb");
     if (!self->input_file) {
-        FILE_READ_ERROR;
+        PyErr_SetFromErrnoWithFilename(PyExc_IOError, filename);
         return NULL;
     }
 
@@ -66,7 +66,7 @@ PyObject *Container_set_input(ContainerObject *self,
     if (fread_unlocked(&self->file_version,
                        offsetof(ContainerObject, extension_records) - offsetof(ContainerObject, file_version), 1,
                        self->input_file) != 1
-        || !strcmp_null(self->file_version, FILE_VERSION)) {
+        || memcmp(self->file_version, FILE_VERSION, WORD_SIZE) != 0) {
         FILE_READ_ERROR;
         funlockfile(self->input_file);
         fclose(self->input_file);
@@ -188,7 +188,7 @@ PyObject *Container_get_headers(const ContainerObject *self,
         if (fread_unlocked(&header->identifier,
                            descriptor_size, 1,
                            self->input_file) != 1
-            || !strcmp_null(header->identifier, DESCRIPTOR_IDENTIFIER)) {
+            || memcmp(header->identifier, DESCRIPTOR_IDENTIFIER, WORD_SIZE) != 0) {
             FILE_READ_ERROR;
             PyErr_SetString(PyExc_IndexError, "identifier not found");
             Py_DECREF(list);
