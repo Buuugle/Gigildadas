@@ -5,8 +5,8 @@
 #define WORD_SIZE 4
 
 #define MEMORY_ALLOCATION_ERROR PyErr_SetString(PyExc_MemoryError, "failed to allocate memory")
-#define FILE_READING_ERROR PyErr_SetString(PyExc_FileError, "failed to read file")
-#define DELETE_ERROR PyErr_SetString(PyExc_ValueError, "cannot delete value")
+#define FILE_READ_ERROR PyErr_SetString(PyExc_IOError, "failed to read file")
+#define ATTR_DELETE_ERROR PyErr_SetString(PyExc_ValueError, "cannot delete value")
 
 #define INIT_STRING(STR)                    \
     for (int i = 0; i < sizeof(STR); ++i) { \
@@ -15,7 +15,7 @@
 
 #define UNICODE_TO_STRING(STR, UNI)                                  \
     if (!UNI) {                                                      \
-        DELETE_ERROR;                                                \
+        ATTR_DELETE_ERROR;                                           \
         return -1;                                                   \
     }                                                                \
     PyObject *buffer = PyUnicode_AsASCIIString(UNI);                 \
@@ -69,7 +69,7 @@
 
 #define SEQUENCE_TO_ARRAY(ARR, LEN, CONV, SEQ)                             \
     if (!SEQ) {                                                            \
-        DELETE_ERROR;                                                      \
+        ATTR_DELETE_ERROR;                                                 \
         return -1;                                                         \
     }                                                                      \
     PyObject *sequence = PySequence_Fast(SEQ, "value must be a sequence"); \
@@ -103,3 +103,6 @@ long max(long a,
 
 long min(long a,
          long b);
+
+int strcmp_null(const char *str,
+                const char *null_str);

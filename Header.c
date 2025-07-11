@@ -132,6 +132,11 @@ PyMemberDef Header_members[] = {
         .type = Py_T_INT,
         .offset = offsetof(HeaderObject, sub_scan)
     },
+    {
+        .name = "data_size",
+        .type = Py_T_LONG,
+        .offset = offsetof(HeaderObject, data_size)
+    },
     {NULL}
 };
 

@@ -39,19 +39,23 @@ int Container_clear(ContainerObject *self);
 void Container_dealloc(ContainerObject *self);
 
 PyObject *Container_set_input(ContainerObject *self,
-                              PyObject *args);
+                              PyObject *args,
+                              PyObject *kwargs);
 
-PyObject *Container_get_entry_count(const ContainerObject *self,
-                                    PyObject *Py_UNUSED(ignored));
+PyObject *Container_get_size(const ContainerObject *self,
+                             PyObject *Py_UNUSED(ignored));
 
 PyObject *Container_get_headers(const ContainerObject *self,
-                                PyObject *args);
+                                PyObject *args,
+                                PyObject *kwargs);
 
 PyObject *Container_get_data(const ContainerObject *self,
-                             PyObject *args);
+                             PyObject *args,
+                             PyObject *kwargs);
 
 PyObject *Container_get_sections(const ContainerObject *self,
-                                 PyObject *args);
+                                 PyObject *args,
+                                 PyObject *kwargs);
 
 extern PyMethodDef Container_methods[];
 

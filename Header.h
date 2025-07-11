@@ -33,7 +33,7 @@ typedef struct HeaderObject {
     int section_count;
     long entry_length;
     long data_address;
-    long data_length;
+    long data_size;
     long descriptor_number;
     int *section_identifiers;
     long *section_lengths;

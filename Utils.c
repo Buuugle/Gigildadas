@@ -18,3 +18,15 @@ long min(const long a,
          const long b) {
     return a < b ? a : b;
 }
+
+int strcmp_null(const char *str,
+                const char *null_str) {
+    while (*null_str != '\0') {
+        if (*null_str != *str) {
+            return 0;
+        }
+        null_str++;
+        str++;
+    }
+    return 1;
+}

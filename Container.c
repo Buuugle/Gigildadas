@@ -10,6 +10,8 @@
 
 #define NO_INPUT_FILE_ERROR PyErr_SetString(PyExc_AttributeError, "no input file")
 #define NO_HEADER_ERROR PyErr_SetString(PyExc_ValueError, "element must be a Header")
+#define FILE_VERSION "2A  "
+#define DESCRIPTOR_IDENTIFIER "2   "
 
 
 int Container_traverse(ContainerObject *self,
@@ -42,9 +44,11 @@ void Container_dealloc(ContainerObject *self) {
 }
 
 PyObject *Container_set_input(ContainerObject *self,
-                              PyObject *args) {
+                              PyObject *args,
+                              PyObject *kwargs) {
     char *filename;
-    if (!PyArg_ParseTuple(args, "s", &filename)) {
+    static char *kwlist[] = {"filename", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", kwlist, &filename)) {
         return NULL;
     }
     if (self->input_file) {
@@ -53,43 +57,66 @@ PyObject *Container_set_input(ContainerObject *self,
 
     self->input_file = fopen(filename, "rb");
     if (!self->input_file) {
-        PyErr_SetString(PyExc_IOError, "file could not be opened");
+        FILE_READ_ERROR;
         return NULL;
     }
 
     flockfile(self->input_file);
     fseek(self->input_file, 0, SEEK_SET);
-    fread_unlocked(&self->file_version,
-                   offsetof(ContainerObject, extension_records) - offsetof(ContainerObject, file_version), 1,
-                   self->input_file);
+    if (fread_unlocked(&self->file_version,
+                       offsetof(ContainerObject, extension_records) - offsetof(ContainerObject, file_version), 1,
+                       self->input_file) != 1
+        || !strcmp_null(self->file_version, FILE_VERSION)) {
+        FILE_READ_ERROR;
+        funlockfile(self->input_file);
+        fclose(self->input_file);
+        self->input_file = NULL;
+        return NULL;
+    }
 
     void *temp = PyMem_Realloc(self->extension_records, self->extension_count * sizeof(long));
     if (!temp) {
         MEMORY_ALLOCATION_ERROR;
         funlockfile(self->input_file);
+        fclose(self->input_file);
+        self->input_file = NULL;
         return NULL;
     }
     self->extension_records = temp;
-    fread_unlocked(self->extension_records,
-                   sizeof(long), self->extension_count,
-                   self->input_file);
+
+    if (fread_unlocked(self->extension_records,
+                       sizeof(long), self->extension_count,
+                       self->input_file) != self->extension_count) {
+        FILE_READ_ERROR;
+        funlockfile(self->input_file);
+        fclose(self->input_file);
+        self->input_file = NULL;
+        PyMem_Free(self->extension_records);
+        self->extension_records = NULL;
+        return NULL;
+    }
 
     funlockfile(self->input_file);
     Py_RETURN_NONE;
 }
 
 PyObject *Container_get_headers(const ContainerObject *self,
-                                PyObject *args) {
-    if (!self->extension_records) {
+                                PyObject *args,
+                                PyObject *kwargs) {
+    if (!self->input_file) {
         NO_INPUT_FILE_ERROR;
         return NULL;
     }
 
     long entry_count = self->next_entry - 1;
     Py_ssize_t start = 0;
-    Py_ssize_t end = entry_count;
-    if (!PyArg_ParseTuple(args, "|ll", &start, &end)) {
+    Py_ssize_t end = 0;
+    static char *kwlist[] = {"start", "end", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|ll", kwlist, &start, &end)) {
         return NULL;
+    }
+    if (end <= start) {
+        end = entry_count;
     }
     if (start >= end || start < 0 || end > entry_count) {
         PyErr_SetString(PyExc_IndexError, "range out of bound");
@@ -131,9 +158,14 @@ PyObject *Container_get_headers(const ContainerObject *self,
                         return NULL;
                     }
                     headers[index] = (HeaderObject *) header;
-                    fread_unlocked(&headers[index]->descriptor_record,
-                                   header_size, 1,
-                                   self->input_file);
+                    if (fread_unlocked(&headers[index]->descriptor_record,
+                                       header_size, 1,
+                                       self->input_file) != 1) {
+                        FILE_READ_ERROR;
+                        Py_DECREF(list);
+                        funlockfile(self->input_file);
+                        return NULL;
+                    }
                     ++index;
                 }
             }
@@ -153,9 +185,16 @@ PyObject *Container_get_headers(const ContainerObject *self,
         fseek(self->input_file,
               descriptor_address * WORD_SIZE,
               SEEK_SET);
-        fread_unlocked(&header->identifier,
-                       descriptor_size, 1,
-                       self->input_file);
+        if (fread_unlocked(&header->identifier,
+                           descriptor_size, 1,
+                           self->input_file) != 1
+            || !strcmp_null(header->identifier, DESCRIPTOR_IDENTIFIER)) {
+            FILE_READ_ERROR;
+            PyErr_SetString(PyExc_IndexError, "identifier not found");
+            Py_DECREF(list);
+            funlockfile(self->input_file);
+            return NULL;
+        }
 
         header->section_identifiers = PyMem_Malloc(header->section_count * sizeof(int));
         header->section_lengths = PyMem_Malloc(header->section_count * sizeof(long));
@@ -168,15 +207,22 @@ PyObject *Container_get_headers(const ContainerObject *self,
             funlockfile(self->input_file);
             return NULL;
         }
-        fread_unlocked(header->section_identifiers,
-                       sizeof(int), header->section_count,
-                       self->input_file);
-        fread_unlocked(header->section_lengths,
-                       sizeof(long), header->section_count,
-                       self->input_file);
-        fread_unlocked(header->section_addresses,
-                       sizeof(long), header->section_count,
-                       self->input_file);
+
+        if (fread_unlocked(header->section_identifiers,
+                           sizeof(int), header->section_count,
+                           self->input_file) != header->section_count
+            || fread_unlocked(header->section_lengths,
+                              sizeof(long), header->section_count,
+                              self->input_file) != header->section_count
+            || fread_unlocked(header->section_addresses,
+                              sizeof(long), header->section_count,
+                              self->input_file) != header->section_count) {
+            FILE_READ_ERROR;
+            Py_DECREF(list);
+            funlockfile(self->input_file);
+            return NULL;
+        }
+
         PyList_SET_ITEM(list, i, header);
         headers[i] = NULL;
     }
@@ -185,9 +231,9 @@ PyObject *Container_get_headers(const ContainerObject *self,
     return list;
 }
 
-PyObject *Container_get_entry_count(const ContainerObject *self,
-                                    PyObject *Py_UNUSED(ignored)) {
-    if (!self->extension_records) {
+PyObject *Container_get_size(const ContainerObject *self,
+                             PyObject *Py_UNUSED(ignored)) {
+    if (!self->input_file) {
         NO_INPUT_FILE_ERROR;
         return NULL;
     }
@@ -195,14 +241,16 @@ PyObject *Container_get_entry_count(const ContainerObject *self,
 }
 
 PyObject *Container_get_data(const ContainerObject *self,
-                             PyObject *args) {
-    if (!self->extension_records) {
+                             PyObject *args,
+                             PyObject *kwargs) {
+    if (!self->input_file) {
         NO_INPUT_FILE_ERROR;
         return NULL;
     }
 
     PyObject *arg;
-    if (!PyArg_ParseTuple(args, "O", &arg)) {
+    static char *kwlist[] = {"headers", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", kwlist, &arg)) {
         return NULL;
     }
 
@@ -213,7 +261,7 @@ PyObject *Container_get_data(const ContainerObject *self,
 
     const npy_intp entry_count = PySequence_Fast_GET_SIZE(sequence);
     PyObject **headers = PySequence_Fast_ITEMS(sequence);
-    npy_intp data_length = 0;
+    npy_intp data_size = 0;
     for (npy_intp i = 0; i < entry_count; ++i) {
         PyObject *object = headers[i];
         if (!PyObject_TypeCheck(object, &HeaderType)) {
@@ -222,26 +270,17 @@ PyObject *Container_get_data(const ContainerObject *self,
             return NULL;
         }
         const HeaderObject *header = (HeaderObject *) object;
-        if (header->data_length > data_length) {
-            data_length = header->data_length;
+        if (header->data_size > data_size) {
+            data_size = header->data_size;
         }
     }
 
-    float *data = calloc(entry_count * data_length, sizeof(float));
+    float *data = calloc(entry_count * data_size, sizeof(float));
     if (!data) {
         MEMORY_ALLOCATION_ERROR;
         Py_DECREF(sequence);
         return NULL;
     }
-    const npy_intp dims[] = {entry_count, data_length};
-    PyObject *array = PyArray_SimpleNewFromData(2, dims, NPY_FLOAT, data);
-    if (!array) {
-        free(data);
-        Py_DECREF(sequence);
-        MEMORY_ALLOCATION_ERROR;
-        return NULL;
-    }
-    PyArray_ENABLEFLAGS((PyArrayObject *) array, NPY_ARRAY_OWNDATA);
 
     flockfile(self->input_file);
     for (int i = 0; i < entry_count; ++i) {
@@ -251,25 +290,40 @@ PyObject *Container_get_data(const ContainerObject *self,
         fseek(self->input_file,
               (descriptor_address + header->data_address - 1) * WORD_SIZE,
               SEEK_SET);
-        fread_unlocked(data + i * data_length,
-                       sizeof(float), header->data_length,
-                       self->input_file);
+        if (fread_unlocked(data + i * data_size,
+                           sizeof(float), header->data_size,
+                           self->input_file) != header->data_size) {
+            Py_DECREF(sequence);
+            FILE_READ_ERROR;
+            funlockfile(self->input_file);
+            return NULL;
+        }
     }
     funlockfile(self->input_file);
-
     Py_DECREF(sequence);
+
+    const npy_intp dims[] = {entry_count, data_size};
+    PyObject *array = PyArray_SimpleNewFromData(2, dims, NPY_FLOAT, data);
+    if (!array) {
+        free(data);
+        MEMORY_ALLOCATION_ERROR;
+        return NULL;
+    }
+    PyArray_ENABLEFLAGS((PyArrayObject *) array, NPY_ARRAY_OWNDATA);
     return array;
 }
 
 PyObject *Container_get_sections(const ContainerObject *self,
-                                 PyObject *args) {
-    if (!self->extension_records) {
+                                 PyObject *args,
+                                 PyObject *kwargs) {
+    if (!self->input_file) {
         NO_INPUT_FILE_ERROR;
         return NULL;
     }
     PyObject *arg1;
     PyObject *arg2;
-    if (!PyArg_ParseTuple(args, "OO", &arg1, &arg2)) {
+    static char *kwlist[] = {"headers", "type", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO", kwlist, &arg1, &arg2)) {
         return NULL;
     }
 
@@ -361,27 +415,27 @@ PyMethodDef Container_methods[] = {
     {
         .ml_name = "set_input",
         .ml_meth = (PyCFunction) Container_set_input,
-        .ml_flags = METH_VARARGS
+        .ml_flags = METH_VARARGS | METH_KEYWORDS
     },
     {
-        .ml_name = "get_entry_count",
-        .ml_meth = (PyCFunction) Container_get_entry_count,
+        .ml_name = "get_size",
+        .ml_meth = (PyCFunction) Container_get_size,
         .ml_flags = METH_NOARGS
     },
     {
         .ml_name = "get_headers",
         .ml_meth = (PyCFunction) Container_get_headers,
-        .ml_flags = METH_VARARGS
+        .ml_flags = METH_VARARGS | METH_KEYWORDS
     },
     {
         .ml_name = "get_data",
         .ml_meth = (PyCFunction) Container_get_data,
-        .ml_flags = METH_VARARGS
+        .ml_flags = METH_VARARGS | METH_KEYWORDS
     },
     {
         .ml_name = "get_sections",
         .ml_meth = (PyCFunction) Container_get_sections,
-        .ml_flags = METH_VARARGS
+        .ml_flags = METH_VARARGS | METH_KEYWORDS
     },
     {NULL}
 };

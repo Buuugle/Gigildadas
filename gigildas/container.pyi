@@ -1,5 +1,6 @@
 from typing import Sequence
-import numpy.typing as npt
+from numpy.typing import NDArray
+from numpy import float32
 
 
 class GeneralSection:
@@ -60,7 +61,7 @@ class Container:
         """Sets the input file and read its header"""
         ...
 
-    def get_entry_count(self) -> int:
+    def get_size(self) -> int:
         """Returns the number of entries in the input file"""
         ...
 
@@ -71,7 +72,7 @@ class Container:
         ...
 
     def get_data(self,
-                 headers: Sequence[Header]) -> npt.NDArray:
+                 headers: Sequence[Header]) -> NDArray[float32]:
         """Returns a 2D array of float representing the data of the given headers entries"""
         ...
 
