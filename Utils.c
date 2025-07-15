@@ -3,8 +3,14 @@
 double power(const double x,
              const int n) {
     double result = 1.;
-    for (int i = 0; i < n; ++i) {
-        result *= x;
+    double base = x;
+    int exp = n;
+    while (exp > 0) {
+        if (exp & 1) {
+            result *= base;
+        }
+        base *= base;
+        exp >>= 1;
     }
     return result;
 }

@@ -14,9 +14,12 @@
         return -1;                                                     \
     }
 
-#define SET_TYPE_CONSTANT(TYPE, NAME, VALUE)         \
-    PyDict_SetItemString(TYPE.tp_dict, NAME, VALUE); \
-    Py_DECREF(VALUE);
+#define SET_TYPE_CONSTANT(TYPE, NAME, VALUE, CONV)       \
+    do {                                                 \
+        PyObject *value = CONV(VALUE);                   \
+        PyDict_SetItemString(TYPE.tp_dict, NAME, value); \
+        Py_DECREF(value);                                \
+    } while (0);
 
 
 static int exec(PyObject *module) {
@@ -30,12 +33,12 @@ static int exec(PyObject *module) {
     REGISTER_TYPE(SwitchSectionType, "SwitchSection")
     REGISTER_TYPE(CalibrationSectionType, "CalibrationSection")
 
-    SET_TYPE_CONSTANT(GeneralSectionType, "ID", PyLong_FromLong(GENERAL_SECTION_ID))
-    SET_TYPE_CONSTANT(PositionSectionType, "ID", PyLong_FromLong(POSITION_SECTION_ID))
-    SET_TYPE_CONSTANT(SpectroSectionType, "ID", PyLong_FromLong(SPECTRO_SECTION_ID))
-    SET_TYPE_CONSTANT(PlotSectionType, "ID", PyLong_FromLong(PLOT_SECTION_ID))
-    SET_TYPE_CONSTANT(SwitchSectionType, "ID", PyLong_FromLong(SWITCH_SECTION_ID))
-    SET_TYPE_CONSTANT(CalibrationSectionType, "ID", PyLong_FromLong(CALIBRATION_SECTION_ID))
+    SET_TYPE_CONSTANT(GeneralSectionType, "ID", GENERAL_SECTION_ID, PyLong_FromLong)
+    SET_TYPE_CONSTANT(PositionSectionType, "ID", POSITION_SECTION_ID, PyLong_FromLong)
+    SET_TYPE_CONSTANT(SpectroSectionType, "ID", SPECTRO_SECTION_ID, PyLong_FromLong)
+    SET_TYPE_CONSTANT(PlotSectionType, "ID", PLOT_SECTION_ID, PyLong_FromLong)
+    SET_TYPE_CONSTANT(SwitchSectionType, "ID", SWITCH_SECTION_ID, PyLong_FromLong)
+    SET_TYPE_CONSTANT(CalibrationSectionType, "ID", CALIBRATION_SECTION_ID, PyLong_FromLong)
     return 0;
 }
 

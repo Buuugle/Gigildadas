@@ -203,33 +203,19 @@ void SwitchSection_dealloc(SwitchSectionObject *self) {
 
 int SwitchSection_read(SwitchSectionObject *self,
                        FILE *file) {
-    if (fread_unlocked(&self->phase_count,
-                       sizeof(self->phase_count), 1,
-                       file) != 1) {
+    if (fread_unlocked(&self->phase_count, sizeof(self->phase_count), 1, file) != 1) {
         FILE_READ_ERROR;
         return -1;
     }
     if (SwitchSection_alloc_arrays(self) < 0) {
         return -1;
     }
-    if (fread_unlocked(self->frequency_offsets,
-                       self->phase_count * sizeof(double), 1,
-                       file) != 1
-        || fread_unlocked(self->times,
-                          self->phase_count * sizeof(float), 1,
-                          file) != 1
-        || fread_unlocked(self->weights,
-                          self->phase_count * sizeof(float), 1,
-                          file) != 1
-        || fread_unlocked(&self->mode,
-                          sizeof(self->mode), 1,
-                          file) != 1
-        || fread_unlocked(self->lambda_offsets,
-                          self->phase_count * sizeof(float), 1,
-                          file) != 1
-        || fread_unlocked(self->beta_offsets,
-                          self->phase_count * sizeof(float), 1,
-                          file) != 1) {
+    if (fread_unlocked(self->frequency_offsets, self->phase_count * sizeof(double), 1, file) != 1
+        || fread_unlocked(self->times, self->phase_count * sizeof(float), 1, file) != 1
+        || fread_unlocked(self->weights, self->phase_count * sizeof(float), 1, file) != 1
+        || fread_unlocked(&self->mode, sizeof(self->mode), 1, file) != 1
+        || fread_unlocked(self->lambda_offsets, self->phase_count * sizeof(float), 1, file) != 1
+        || fread_unlocked(self->beta_offsets, self->phase_count * sizeof(float), 1, file) != 1) {
         FILE_READ_ERROR;
         return -1;
     }
@@ -242,48 +228,34 @@ int SwitchSection_alloc_arrays(SwitchSectionObject *self) {
         return 0;
     }
 
-    void *temp = PyMem_Realloc(self->frequency_offsets, self->phase_count * sizeof(double));
-    if (!temp) {
+    double *new_frequency_offsets = PyMem_Calloc(self->phase_count, sizeof(double));
+    float *new_times = PyMem_Calloc(self->phase_count, sizeof(float));
+    float *new_weights = PyMem_Calloc(self->phase_count, sizeof(float));
+    float *new_lambda_offsets = PyMem_Calloc(self->phase_count, sizeof(float));
+    float *new_beta_offsets = PyMem_Calloc(self->phase_count, sizeof(float));
+
+    if (!new_frequency_offsets || !new_times || !new_weights ||
+        !new_lambda_offsets || !new_beta_offsets) {
+        PyMem_Free(new_frequency_offsets);
+        PyMem_Free(new_times);
+        PyMem_Free(new_weights);
+        PyMem_Free(new_lambda_offsets);
+        PyMem_Free(new_beta_offsets);
         MEMORY_ALLOCATION_ERROR;
         return -1;
     }
-    self->frequency_offsets = temp;
 
-    temp = PyMem_Realloc(self->times, self->phase_count * sizeof(float));
-    if (!temp) {
-        MEMORY_ALLOCATION_ERROR;
-        return -1;
-    }
-    self->times = temp;
+    PyMem_Free(self->frequency_offsets);
+    PyMem_Free(self->times);
+    PyMem_Free(self->weights);
+    PyMem_Free(self->lambda_offsets);
+    PyMem_Free(self->beta_offsets);
 
-    temp = PyMem_Realloc(self->weights, self->phase_count * sizeof(float));
-    if (!temp) {
-        MEMORY_ALLOCATION_ERROR;
-        return -1;
-    }
-    self->weights = temp;
-
-    temp = PyMem_Realloc(self->lambda_offsets, self->phase_count * sizeof(float));
-    if (!temp) {
-        MEMORY_ALLOCATION_ERROR;
-        return -1;
-    }
-    self->lambda_offsets = temp;
-
-    temp = PyMem_Realloc(self->beta_offsets, self->phase_count * sizeof(float));
-    if (!temp) {
-        MEMORY_ALLOCATION_ERROR;
-        return -1;
-    }
-    self->beta_offsets = temp;
-
-    for (int i = 0; i < self->phase_count; ++i) {
-        self->frequency_offsets[i] = 0.;
-        self->times[i] = 0.f;
-        self->weights[i] = 0.f;
-        self->lambda_offsets[i] = 0.f;
-        self->beta_offsets[i] = 0.f;
-    }
+    self->frequency_offsets = new_frequency_offsets;
+    self->times = new_times;
+    self->weights = new_weights;
+    self->lambda_offsets = new_lambda_offsets;
+    self->beta_offsets = new_beta_offsets;
 
     return 0;
 }
@@ -309,8 +281,7 @@ int SwitchSection_set_phase_count(SwitchSectionObject *self,
         return -1;
     }
     self->phase_count = temp;
-    SwitchSection_alloc_arrays(self);
-    return 0;
+    return SwitchSection_alloc_arrays(self);
 }
 
 PyObject *SwitchSection_get_frequency_offsets(const SwitchSectionObject *self,

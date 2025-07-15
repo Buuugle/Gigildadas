@@ -23,7 +23,7 @@
         return -1;                                                   \
     }                                                                \
     const Py_ssize_t arg_length = PyBytes_GET_SIZE(buffer);          \
-    const ssize_t length = sizeof(STR);                              \
+    const Py_ssize_t length = sizeof(STR);                           \
     if (arg_length > length) {                                       \
         PyErr_SetString(PyExc_ValueError, "wrong string length");    \
         return -1;                                                   \
@@ -39,18 +39,18 @@
     Py_DECREF(buffer);                                               \
     data = NULL;                                                     \
     buffer = NULL;                                                   \
-    for (ssize_t i = arg_length; i < length; ++i) {                  \
+    for (Py_ssize_t i = arg_length; i < length; ++i) {               \
         STR[i] = ' ';                                                \
     }                                                                \
     return 0;
 
-#define STRING_TO_UNICODE(STR)           \
-    const ssize_t length = sizeof(STR);  \
-    char buffer[length + 1];             \
-    buffer[length] = '\0';               \
-    for (int i = 0; i < length; ++i) {   \
-        buffer[i] = STR[i];              \
-    }                                    \
+#define STRING_TO_UNICODE(STR)              \
+    const Py_ssize_t length = sizeof(STR);  \
+    char buffer[length + 1];                \
+    buffer[length] = '\0';                  \
+    for (int i = 0; i < length; ++i) {      \
+        buffer[i] = STR[i];                 \
+    }                                       \
     return PyUnicode_FromString(buffer);
 
 #define ARRAY_TO_TUPLE(ARR, LEN, CONV)            \
