@@ -5,11 +5,11 @@ set(CMAKE_C_STANDARD 17)
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
 
 add_library(Container SHARED
-        Module.c
-        Container.c
-        Header.c
-        Utils.c
-        Sections.c
+        src/Module.c
+        src/Container.c
+        src/Header.c
+        src/Utils.c
+        src/Sections.c
 )
 
 target_include_directories(Container PRIVATE

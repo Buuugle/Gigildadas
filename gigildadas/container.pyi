@@ -1,6 +1,5 @@
 from typing import Sequence
-from numpy.typing import NDArray
-from numpy import float32
+import numpy as np
 
 
 class GeneralSection:
@@ -139,26 +138,38 @@ class Container:
 
     def set_input(self,
                   filename: str) -> None:
-        """Sets the input file and read its header"""
+        """
+        Sets the input file.
+        """
         ...
 
     def get_size(self) -> int:
-        """Returns the number of entries in the input file"""
+        """
+        Returns the number of observations in the input file.
+        """
         ...
 
     def get_headers(self,
                     start: int = 0,
                     end: int = 0) -> list[Header]:
-        """Returns a list of the entry headers from index start to end (excluded)"""
+        """
+        Returns a list of the observations headers from index start to end (excluded).
+        The default value "0" for the "end" parameter means "to the last observation in the file".
+        """
         ...
 
     def get_data(self,
-                 headers: Sequence[Header]) -> NDArray[float32]:
-        """Returns a 2D array of float representing the data of the given headers entries"""
+                 headers: Sequence[Header]) -> np.ndarray[np.float32]:
+        """
+        Returns a 2D numpy array of float corresponding to the data of each header
+        """
         ...
 
     def get_sections[T](self,
                         headers: Sequence[Header],
                         type: type[T]) -> list[T]:
-        """Returns a list of the sections of the given headers entries corresponding to the given type"""
+        """
+        Returns a list containing the sections of each header for the given type.
+        If the sections does not exists for an header, the list contains None at the header's index.
+        """
         ...
