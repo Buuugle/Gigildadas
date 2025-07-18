@@ -1,0 +1,117 @@
+name: Multi-platform Build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            lib_extension: .so
+          - os: macos-latest
+            platform: macos
+            lib_extension: .dylib
+          - os: windows-latest
+            platform: windows
+            lib_extension: .dll
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Setup Python (macOS)
+        if: matrix.os == 'macos-latest'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Setup Python (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Install build tools (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake python3-dev
+
+      - name: Install build tools (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install cmake
+
+      - name: Install build tools (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: microsoft/setup-msbuild@v1
+
+      - name: Configure CMake
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: |
+          cd build
+          cmake --build . --config Release
+
+      - name: List output files (Debug)
+        run: |
+          echo "Build directory contents:"
+          ls -la build/
+          echo "Gigildadas directory contents:"
+          ls -la build/gigildadas/ || echo "gigildadas directory not found"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-${{ matrix.platform }}
+          path: |
+            build/gigildadas/container${{ matrix.lib_extension }}
+            build/gigildadas/container.dll
+            build/gigildadas/container.so
+            build/gigildadas/container.dylib
+          retention-days: 30
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Display structure
+        run: ls -la
+
+      - name: Create release package
+        run: |
+          mkdir -p release
+          cp container-linux/container.so release/container-linux.so 2>/dev/null || true
+          cp container-macos/container.dylib release/container-macos.dylib 2>/dev/null || true  
+          cp container-windows/container.dll release/container-windows.dll 2>/dev/null || true
+          ls -la release/
+
+      - name: Upload release package
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-all-platforms
+          path: release/
+          retention-days: 90
