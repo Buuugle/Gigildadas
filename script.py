@@ -12,8 +12,7 @@ print(f"{container.get_size()} observations found")
 headers = container.get_headers()  # Get observations headers
 intensity = container.get_data(headers)  # Get intensity data (2D numpy array)
 print(f"{len(intensity[0])} channels in data")
-(spectro,) = container.get_sections(headers[0:1],
-                                    gc.SpectroSection)  # Get spectro section of the first observation to compute frequency
+spectro = container.get_sections(headers[0:1], gc.SpectroSection)[0]  # Get spectro section of the first observation to compute frequency
 
 # Compute frequency range + convert alpha and delta from radian to arcsec
 frequency = spectro.rest_frequency + (
@@ -41,11 +40,8 @@ for i in range(max_iterations):
         break
     lines_mask = new_mask
 print(f"Lines detection iterations: {iterations}")
-
-# Group consecutive channels together to form lines
 lines = np.where(lines_mask)[0]
-breaks = np.where(np.diff(lines) > 1)[0] + 1
-split_lines = np.split(lines, breaks)
+split_lines = np.split(lines, np.where(np.diff(lines) > 1)[0] + 1)  # Group consecutive detected channels together to form lines
 
 # Plot total intensity in blue + detected line channels in red
 plt.step(frequency, total_intensity, linewidth=.2)
@@ -58,7 +54,6 @@ win_size = 100
 lines_set = set(lines)
 for line in split_lines:
     center = max(line)
-
     center_freq = frequency[center]
     print(f"Map: {center_freq:.2f} MHz")
 
@@ -92,15 +87,15 @@ for line in split_lines:
     width = beam / 3
     step = beam / 4
     support = (5 * width) ** 2
-    sigma = width / (2 * np.sqrt(2 * np.log(2)))
-    gaussian = lambda x, y: np.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2))
+    sigma = width / (2 * np.sqrt(np.log(2)))
+    gaussian = lambda x, y: np.exp(-(x ** 2 + y ** 2) / (sigma ** 2))
     num_alpha = int((max_alpha - min_alpha) / step) + 1
     num_delta = int((max_delta - min_delta) / step) + 1
     alpha_grid = np.linspace(min_alpha, max_alpha, num_alpha)
     delta_grid = np.linspace(min_delta, max_delta, num_delta)
     grid_x, grid_y = np.meshgrid(alpha_grid, delta_grid)
     grid_z = np.zeros_like(grid_x)
-    for i in range(num_delta): # Perhaps this loop can be vectorized with numpy for greater efficiency?
+    for i in range(num_delta):  # Perhaps this loop can be vectorized with numpy for greater efficiency?
         for j in range(num_alpha):
             gx, gy = grid_x[i, j], grid_y[i, j]
             dist_mask = (alpha - gx) ** 2 + (delta - gy) ** 2 <= support
@@ -113,9 +108,9 @@ for line in split_lines:
     plt.gca().invert_xaxis()
     plt.pcolormesh(grid_x, grid_y, grid_z, shading="auto", cmap="gist_heat", vmin=0)
     plt.colorbar()
-    plt.contour(grid_x, grid_y, grid_z, colors="white", linewidths=.75)
+    # plt.contour(grid_x, grid_y, grid_z, colors="white", linewidth=.75)
     plt.axis("equal")
-    plt.savefig(f"{center_freq:.2f}.png")
+    plt.savefig(f"map_{center_freq:.2f}.png")
     plt.close()
 
 print(f"Execution time: {time() - t:.2f} s")

@@ -25,7 +25,6 @@ typedef struct ContainerObject {
     int extension_count;
     int extension_length_power;
     long *extension_records;
-    // TODO: Sections
 } ContainerObject;
 
 #pragma pack()

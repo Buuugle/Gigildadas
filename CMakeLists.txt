@@ -17,5 +17,5 @@ target_include_directories(Container PRIVATE
 )
 set_target_properties(Container PROPERTIES
         OUTPUT_NAME "container"
-        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/../gigildas"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/../gigildadas"
 )
