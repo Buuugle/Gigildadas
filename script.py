@@ -7,11 +7,12 @@ t = time()
 
 # Use "gigildadas" lib to read the header, data and spectro section of all the observations
 container = gc.Container()
-container.set_input("CB244_0LI.30m")  # Set input file
-print(f"{container.get_size()} observations found")
+window = "1LI"
+container.set_input(f"CB244_{window}.30m")  # Set input file
+print(f"Observation count: {container.get_size()}")
 headers = container.get_headers()  # Get observations headers
+print(f"Channel count: {headers[0].data_size}")
 intensity = container.get_data(headers)  # Get intensity data (2D numpy array)
-print(f"{len(intensity[0])} channels in data")
 spectro = container.get_sections(headers[0:1], gc.SpectroSection)[0]  # Get spectro section of the first observation to compute frequency
 
 # Compute frequency range + convert alpha and delta from radian to arcsec
@@ -27,11 +28,12 @@ total_intensity = np.mean(intensity, axis=0)
 
 # Detection of lines. Accuracy can be improved by computing std and mean around each channel instead of globally?
 lines_mask = np.zeros(len(total_intensity), dtype=bool)
+negative_mask = np.zeros(len(total_intensity), dtype=bool)
 max_iterations = 10
 std_threshold = 5
 iterations = max_iterations
 for i in range(max_iterations):
-    intensity_masked = total_intensity[~lines_mask]
+    intensity_masked = total_intensity[~(lines_mask | negative_mask)]
     std = np.std(intensity_masked)
     mean = np.mean(intensity_masked)
     new_mask = total_intensity >= mean + std_threshold * std
@@ -39,14 +41,16 @@ for i in range(max_iterations):
         iterations = i
         break
     lines_mask = new_mask
-print(f"Lines detection iterations: {iterations}")
+    negative_mask = total_intensity <= mean - std_threshold * std
+print(f"Detection iteration count: {iterations}")
 lines = np.where(lines_mask)[0]
 split_lines = np.split(lines, np.where(np.diff(lines) > 1)[0] + 1)  # Group consecutive detected channels together to form lines
+print(f"Detected line count: {len(split_lines)}")
 
 # Plot total intensity in blue + detected line channels in red
 plt.step(frequency, total_intensity, linewidth=.2)
-plt.scatter(frequency[lines_mask], total_intensity[lines_mask], s=5, color="r")
-plt.savefig("plot.svg")
+plt.scatter(frequency[lines_mask], total_intensity[lines_mask], s=2, color="r")
+plt.savefig(f"spectra/spectrum_{window}.svg")
 plt.close()
 
 # Compute map for each line
@@ -88,7 +92,7 @@ for line in split_lines:
     step = beam / 4
     support = (5 * width) ** 2
     sigma = width / (2 * np.sqrt(np.log(2)))
-    gaussian = lambda x, y: np.exp(-(x ** 2 + y ** 2) / (sigma ** 2))
+    gaussian = lambda x, y: np.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2))
     num_alpha = int((max_alpha - min_alpha) / step) + 1
     num_delta = int((max_delta - min_delta) / step) + 1
     alpha_grid = np.linspace(min_alpha, max_alpha, num_alpha)
@@ -110,7 +114,7 @@ for line in split_lines:
     plt.colorbar()
     # plt.contour(grid_x, grid_y, grid_z, colors="white", linewidth=.75)
     plt.axis("equal")
-    plt.savefig(f"map_{center_freq:.2f}.png")
+    plt.savefig(f"maps/map_{window}_{center_freq:.2f}.png")
     plt.close()
 
 print(f"Execution time: {time() - t:.2f} s")
