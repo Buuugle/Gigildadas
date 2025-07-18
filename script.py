@@ -94,16 +94,13 @@ for line in split_lines:
     support = (5 * width) ** 2
     sigma = width / (2 * np.sqrt(2 * np.log(2)))
     gaussian = lambda x, y: np.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2))
-
     num_alpha = int((max_alpha - min_alpha) / step) + 1
     num_delta = int((max_delta - min_delta) / step) + 1
     alpha_grid = np.linspace(min_alpha, max_alpha, num_alpha)
     delta_grid = np.linspace(min_delta, max_delta, num_delta)
     grid_x, grid_y = np.meshgrid(alpha_grid, delta_grid)
     grid_z = np.zeros_like(grid_x)
-
-    # Perhaps this loop can be vectorized with numpy for greater efficiency?
-    for i in range(num_delta):
+    for i in range(num_delta): # Perhaps this loop can be vectorized with numpy for greater efficiency?
         for j in range(num_alpha):
             gx, gy = grid_x[i, j], grid_y[i, j]
             dist_mask = (alpha - gx) ** 2 + (delta - gy) ** 2 <= support
