@@ -18,7 +18,7 @@ print(f"{len(intensity[0])} channels in data")
 # Compute frequency range + convert alpha and delta from radian to arcsec
 frequency = spectro.rest_frequency + (
         np.arange(spectro.channel_count) - spectro.reference_channel + 1) * spectro.frequency_resolution
-alpha = np.array([header.lambda_offset for header in headers]) * 180 * 3600 / np.pi  # Convert alpha and
+alpha = np.array([header.lambda_offset for header in headers]) * 180 * 3600 / np.pi
 delta = np.array([header.beta_offset for header in headers]) * 180 * 3600 / np.pi
 min_alpha, max_alpha = np.min(alpha), np.max(alpha)
 min_delta, max_delta = np.min(delta), np.max(delta)
