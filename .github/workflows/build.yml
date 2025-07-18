@@ -14,13 +14,13 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         include:
           - os: ubuntu-latest
-            python-version: '3.13'
+            python-version: '3.12'
             cmake-preset: linux
           - os: windows-latest
-            python-version: '3.13'
+            python-version: '3.12'
             cmake-preset: windows
           - os: macos-latest
-            python-version: '3.13'
+            python-version: '3.12'
             cmake-preset: macos
 
     steps:
@@ -36,7 +36,15 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3.13-dev
+          # Install build essentials
+          sudo apt-get install -y build-essential
+          # Install Python dev headers for the version we're using
+          PYTHON_VERSION=$(python3 --version | cut -d' ' -f2 | cut -d'.' -f1,2)
+          echo "Installing headers for Python $PYTHON_VERSION"
+          sudo apt-get install -y python${PYTHON_VERSION}-dev || {
+            echo "Fallback: installing default python3-dev"
+            sudo apt-get install -y python3-dev
+          }
 
       - name: Install Python headers (macOS)
         if: matrix.os == 'macos-latest'
