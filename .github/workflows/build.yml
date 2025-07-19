@@ -1,4 +1,4 @@
-name: Build Multi-Platform
+name: Build Container Library
 
 on:
   push:
@@ -8,110 +8,109 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          - os: ubuntu-latest
-            python-version: '3.12'
-            cmake-preset: linux
-          - os: windows-latest
-            python-version: '3.12'
-            cmake-preset: windows
-          - os: macos-latest
-            python-version: '3.12'
-            cmake-preset: macos
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+      fail-fast: false
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Python headers (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy
+
+      - name: Install CMake (Ubuntu)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          # Install build essentials
-          sudo apt-get install -y build-essential
-          # Install Python dev headers for the version we're using
-          PYTHON_VERSION=$(python3 --version | cut -d' ' -f2 | cut -d'.' -f1,2)
-          echo "Installing headers for Python $PYTHON_VERSION"
-          sudo apt-get install -y python${PYTHON_VERSION}-dev || {
-            echo "Fallback: installing default python3-dev"
-            sudo apt-get install -y python3-dev
-          }
+          sudo apt-get install -y cmake build-essential
 
-      - name: Install Python headers (macOS)
-        if: matrix.os == 'macos-latest'
+      - name: Install CMake (macOS)
+        if: runner.os == 'macOS'
         run: |
-          # Python headers are included with python from setup-python action
-          echo "Python headers should be available"
+          brew install cmake
 
-      - name: Configure CMake (Linux/macOS)
-        if: matrix.os != 'windows-latest'
+      - name: Install CMake (Windows)
+        if: runner.os == 'Windows'
         run: |
-          PYTHON_INCLUDE=$(python3 -c "import sysconfig; print(sysconfig.get_path('include'))")
-          echo "Python include path: $PYTHON_INCLUDE"
-          mkdir build
+          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+
+      - name: Create build directory
+        run: mkdir build
+
+      - name: Configure CMake (Unix)
+        if: runner.os != 'Windows'
+        run: |
           cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DPYTHON_INCLUDE_DIR="$PYTHON_INCLUDE"
+          cmake .. -DCMAKE_BUILD_TYPE=Release
 
       - name: Configure CMake (Windows)
-        if: matrix.os == 'windows-latest'
+        if: runner.os == 'Windows'
         run: |
-          $PYTHON_INCLUDE = python -c "import sysconfig; print(sysconfig.get_path('include'))"
-          Write-Host "Python include path: $PYTHON_INCLUDE"
-          mkdir build
           cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DPYTHON_INCLUDE_DIR="$PYTHON_INCLUDE"
+          cmake .. -DCMAKE_BUILD_TYPE=Release -G "Visual Studio 17 2022"
 
-      - name: Build
+      - name: Build project
         run: |
           cd build
           cmake --build . --config Release
 
-      - name: Create output directory
+      - name: Create gigildadas directory if it doesn't exist
         run: |
-          mkdir -p artifacts/${{ matrix.os }}
+          mkdir -p gigildadas
+        shell: bash
 
-      - name: Copy artifacts (Linux/macOS)
-        if: matrix.os != 'windows-latest'
+      - name: List build artifacts (Debug)
         run: |
-          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-            cp gigildadas/container.so artifacts/${{ matrix.os }}/
-          else
-            cp gigildadas/container.dylib artifacts/${{ matrix.os }}/
-          fi
-
-      - name: Copy artifacts (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          Copy-Item "gigildadas/container.dll" "artifacts/${{ matrix.os }}/"
+          echo "Build directory contents:"
+          ls -la build/
+          echo "Gigildadas directory contents:"
+          ls -la gigildadas/ || echo "gigildadas directory is empty or doesn't exist"
+          echo "Looking for library files:"
+          find . -name "*.so" -o -name "*.dylib" -o -name "*.dll" || echo "No library files found"
+        shell: bash
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: container-${{ matrix.os }}
-          path: artifacts/${{ matrix.os }}/
+          name: container-library-${{ matrix.os }}-python${{ matrix.python-version }}
+          path: |
+            gigildadas/
+            build/
+          retention-days: 30
 
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
-        with:
-          path: dist/
+
+      - name: Display structure of downloaded files
+        run: ls -la
+
+      - name: Create release archive
+        run: |
+          mkdir release
+          cp -r container-library-*/* release/ 2>/dev/null || true
+          tar -czf gigildadas-libraries.tar.gz release/
 
       - name: Create Release
         uses: actions/create-release@v1
+        if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -119,13 +118,3 @@ jobs:
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
-
-      - name: Upload Release Assets
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/
-          asset_name: container-multiplatform
-          asset_content_type: application/zip
