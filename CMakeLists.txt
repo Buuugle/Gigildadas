@@ -23,7 +23,7 @@ target_include_directories(Container PRIVATE
         ${Python3_INCLUDE_DIRS}
         ${NUMPY_INCLUDE_DIR}
 )
-
+target_link_libraries(Container PRIVATE ${Python3_LIBRARIES})
 set_target_properties(Container PROPERTIES
         OUTPUT_NAME "container"
         LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/gigildadas"
