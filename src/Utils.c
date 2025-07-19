@@ -1,10 +1,10 @@
 #include "Utils.h"
 
 double power(const double x,
-             const int n) {
+             const long n) {
     double result = 1.;
     double base = x;
-    int exp = n;
+    long exp = n;
     while (exp > 0) {
         if (exp & 1) {
             result *= base;

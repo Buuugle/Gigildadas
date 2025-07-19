@@ -8,6 +8,7 @@ t = time()
 # Use "gigildadas" lib to read the header, data and spectro section of all the observations
 container = gc.Container()
 window = "1LI"
+print(f"Window: {window}")
 container.set_input(f"CB244_{window}.30m")  # Set input file
 print(f"Observation count: {container.get_size()}")
 headers = container.get_headers()  # Get observations headers
@@ -26,7 +27,7 @@ min_delta, max_delta = np.min(delta), np.max(delta)
 # Integrate intensity on all the surface
 total_intensity = np.mean(intensity, axis=0)
 
-# Detection of lines. Accuracy can be improved by computing std and mean around each channel instead of globally?
+# Detection of lines. Accuracy can be improved by computing std and mean around each channel instead of globally
 lines_mask = np.zeros(len(total_intensity), dtype=bool)
 negative_mask = np.zeros(len(total_intensity), dtype=bool)
 max_iterations = 10

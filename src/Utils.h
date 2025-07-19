@@ -8,9 +8,9 @@
 #define FILE_READ_ERROR PyErr_SetString(PyExc_IOError, "failed to read file")
 #define ATTR_DELETE_ERROR PyErr_SetString(PyExc_ValueError, "cannot delete value")
 
-#define INIT_STRING(STR)                    \
-    for (int i = 0; i < sizeof(STR); ++i) { \
-        STR[i] = ' ';                       \
+#define INIT_STRING(STR)                        \
+    for (ssize_t i = 0; i < sizeof(STR); ++i) { \
+        STR[i] = ' ';                           \
     }
 
 #define UNICODE_TO_STRING(STR, UNI)                                  \
@@ -44,13 +44,13 @@
     }                                                                \
     return 0;
 
-#define STRING_TO_UNICODE(STR)              \
-    const Py_ssize_t length = sizeof(STR);  \
-    char buffer[length + 1];                \
-    buffer[length] = '\0';                  \
-    for (int i = 0; i < length; ++i) {      \
-        buffer[i] = STR[i];                 \
-    }                                       \
+#define STRING_TO_UNICODE(STR)                \
+    const Py_ssize_t length = sizeof(STR);    \
+    char buffer[length + 1];                  \
+    buffer[length] = '\0';                    \
+    for (Py_ssize_t i = 0; i < length; ++i) { \
+        buffer[i] = STR[i];                   \
+    }                                         \
     return PyUnicode_FromString(buffer);
 
 #define ARRAY_TO_TUPLE(ARR, LEN, CONV)            \
@@ -83,7 +83,7 @@
         return -1;                                                         \
     }                                                                      \
     PyObject **items = PySequence_Fast_ITEMS(sequence);                    \
-    for (int i = 0; i < LEN; ++i) {                                        \
+    for (Py_ssize_t i = 0; i < LEN; ++i) {                                 \
         const typeof(ARR[i]) temp = CONV(items[i]);                        \
         if (PyErr_Occurred()) {                                            \
             Py_DECREF(sequence);                                           \
@@ -96,7 +96,7 @@
 
 
 double power(double x,
-             int n);
+             long n);
 
 long max(long a,
          long b);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdint.h>
 #include <Python.h>
 
 #include "Utils.h"
@@ -13,18 +14,18 @@ typedef struct ContainerObject {
     FILE *output_file;
 
     char file_version[WORD_SIZE];
-    int record_length;
-    int file_kind;
-    int entry_header_version;
-    int entry_header_length;
-    int flags;
-    long next_entry;
-    long next_record;
-    int next_word;
-    int extension_length_init;
-    int extension_count;
-    int extension_length_power;
-    long *extension_records;
+    int32_t record_length;
+    int32_t file_kind;
+    int32_t entry_header_version;
+    int32_t entry_header_length;
+    int32_t flags;
+    int64_t next_entry;
+    int64_t next_record;
+    int32_t next_word;
+    int32_t extension_length_init;
+    int32_t extension_count;
+    int32_t extension_length_power;
+    int64_t *extension_records;
 } ContainerObject;
 
 #pragma pack()

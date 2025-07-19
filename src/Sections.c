@@ -3,7 +3,7 @@
 #include "Sections.h"
 
 
-section_read get_section_read(const int id) {
+section_read get_section_read(const int32_t id) {
     switch (id) {
         case GENERAL_SECTION_ID: return (section_read) GeneralSection_read;
         case POSITION_SECTION_ID: return (section_read) PositionSection_read;
@@ -35,9 +35,9 @@ void GeneralSection_dealloc(GeneralSectionObject *self) {
 
 int GeneralSection_read(GeneralSectionObject *self,
                         FILE *file) {
-    if (fread_unlocked(&self->ut,
-                       sizeof(GeneralSectionObject) - offsetof(GeneralSectionObject, ut), 1,
-                       file) != 1) {
+    if (fread(&self->ut,
+              sizeof(GeneralSectionObject) - offsetof(GeneralSectionObject, ut), 1,
+              file) != 1) {
         FILE_READ_ERROR;
         return -1;
     }
@@ -76,9 +76,9 @@ PyObject *PositionSection_new(PyTypeObject *type,
 
 int PositionSection_read(PositionSectionObject *self,
                          FILE *file) {
-    if (fread_unlocked(&self->source,
-                       sizeof(PositionSectionObject) - offsetof(PositionSectionObject, source), 1,
-                       file) != 1) {
+    if (fread(&self->source,
+              sizeof(PositionSectionObject) - offsetof(PositionSectionObject, source), 1,
+              file) != 1) {
         FILE_READ_ERROR;
         return -1;
     }
@@ -126,9 +126,9 @@ PyObject *SpectroSection_new(PyTypeObject *type,
 
 int SpectroSection_read(SpectroSectionObject *self,
                         FILE *file) {
-    if (fread_unlocked(&self->line,
-                       sizeof(SpectroSectionObject) - offsetof(SpectroSectionObject, line), 1,
-                       file) != 1) {
+    if (fread(&self->line,
+              sizeof(SpectroSectionObject) - offsetof(SpectroSectionObject, line), 1,
+              file) != 1) {
         FILE_READ_ERROR;
         return -1;
     }
@@ -165,9 +165,9 @@ void PlotSection_dealloc(PlotSectionObject *self) {
 
 int PlotSection_read(PlotSectionObject *self,
                      FILE *file) {
-    if (fread_unlocked(&self->intensity_min,
-                       sizeof(PlotSectionObject) - offsetof(PlotSectionObject, intensity_min), 1,
-                       file) != 1) {
+    if (fread(&self->intensity_min,
+              sizeof(PlotSectionObject) - offsetof(PlotSectionObject, intensity_min), 1,
+              file) != 1) {
         FILE_READ_ERROR;
         return -1;
     }
@@ -203,19 +203,19 @@ void SwitchSection_dealloc(SwitchSectionObject *self) {
 
 int SwitchSection_read(SwitchSectionObject *self,
                        FILE *file) {
-    if (fread_unlocked(&self->phase_count, sizeof(self->phase_count), 1, file) != 1) {
+    if (fread(&self->phase_count, sizeof(self->phase_count), 1, file) != 1) {
         FILE_READ_ERROR;
         return -1;
     }
     if (SwitchSection_alloc_arrays(self) < 0) {
         return -1;
     }
-    if (fread_unlocked(self->frequency_offsets, self->phase_count * sizeof(double), 1, file) != 1
-        || fread_unlocked(self->times, self->phase_count * sizeof(float), 1, file) != 1
-        || fread_unlocked(self->weights, self->phase_count * sizeof(float), 1, file) != 1
-        || fread_unlocked(&self->mode, sizeof(self->mode), 1, file) != 1
-        || fread_unlocked(self->lambda_offsets, self->phase_count * sizeof(float), 1, file) != 1
-        || fread_unlocked(self->beta_offsets, self->phase_count * sizeof(float), 1, file) != 1) {
+    if (fread(self->frequency_offsets, self->phase_count * sizeof(double), 1, file) != 1
+        || fread(self->times, self->phase_count * sizeof(float), 1, file) != 1
+        || fread(self->weights, self->phase_count * sizeof(float), 1, file) != 1
+        || fread(&self->mode, sizeof(self->mode), 1, file) != 1
+        || fread(self->lambda_offsets, self->phase_count * sizeof(float), 1, file) != 1
+        || fread(self->beta_offsets, self->phase_count * sizeof(float), 1, file) != 1) {
         FILE_READ_ERROR;
         return -1;
     }
@@ -272,7 +272,7 @@ int SwitchSection_set_phase_count(SwitchSectionObject *self,
         ATTR_DELETE_ERROR;
         return -1;
     }
-    const int temp = PyLong_AsInt(value);
+    const int32_t temp = PyLong_AsInt(value);
     if (PyErr_Occurred()) {
         return -1;
     }
@@ -358,9 +358,9 @@ void CalibrationSection_dealloc(CalibrationSectionObject *self) {
 
 int CalibrationSection_read(CalibrationSectionObject *self,
                             FILE *file) {
-    if (fread_unlocked(&self->beam_efficiency,
-                       sizeof(CalibrationSectionObject) - offsetof(CalibrationSectionObject, beam_efficiency), 1,
-                       file) != 1) {
+    if (fread(&self->beam_efficiency,
+              sizeof(CalibrationSectionObject) - offsetof(CalibrationSectionObject, beam_efficiency), 1,
+              file) != 1) {
         FILE_READ_ERROR;
         return -1;
     }

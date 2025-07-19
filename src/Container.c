@@ -61,14 +61,12 @@ PyObject *Container_set_input(ContainerObject *self,
         return NULL;
     }
 
-    flockfile(self->input_file);
     fseek(self->input_file, 0, SEEK_SET);
-    if (fread_unlocked(&self->file_version,
-                       offsetof(ContainerObject, extension_records) - offsetof(ContainerObject, file_version), 1,
-                       self->input_file) != 1
+    if (fread(&self->file_version,
+              offsetof(ContainerObject, extension_records) - offsetof(ContainerObject, file_version), 1,
+              self->input_file) != 1
         || memcmp(self->file_version, FILE_VERSION, WORD_SIZE) != 0) {
         FILE_READ_ERROR;
-        funlockfile(self->input_file);
         fclose(self->input_file);
         self->input_file = NULL;
         return NULL;
@@ -77,18 +75,16 @@ PyObject *Container_set_input(ContainerObject *self,
     void *temp = PyMem_Realloc(self->extension_records, self->extension_count * sizeof(long));
     if (!temp) {
         MEMORY_ALLOCATION_ERROR;
-        funlockfile(self->input_file);
         fclose(self->input_file);
         self->input_file = NULL;
         return NULL;
     }
     self->extension_records = temp;
 
-    if (fread_unlocked(self->extension_records,
-                       sizeof(long), self->extension_count,
-                       self->input_file) != self->extension_count) {
+    if (fread(self->extension_records,
+              sizeof(int64_t), self->extension_count,
+              self->input_file) != self->extension_count) {
         FILE_READ_ERROR;
-        funlockfile(self->input_file);
         fclose(self->input_file);
         self->input_file = NULL;
         PyMem_Free(self->extension_records);
@@ -96,7 +92,6 @@ PyObject *Container_set_input(ContainerObject *self,
         return NULL;
     }
 
-    funlockfile(self->input_file);
     Py_RETURN_NONE;
 }
 
@@ -144,7 +139,6 @@ PyObject *Container_get_headers(const ContainerObject *self,
     const Py_ssize_t header_size = offsetof(HeaderObject, identifier) - offsetof(HeaderObject, descriptor_record);
     HeaderObject *headers[entry_count];
     size_t index = 0;
-    flockfile(self->input_file);
 
     for (Py_ssize_t i = 0; i < self->extension_count; ++i) {
         const Py_ssize_t size = (Py_ssize_t) ceil(
@@ -163,15 +157,13 @@ PyObject *Container_get_headers(const ContainerObject *self,
                     if (!header) {
                         MEMORY_ALLOCATION_ERROR;
                         Py_DECREF(list);
-                        funlockfile(self->input_file);
                         cleanup_headers(headers, i);
                         return NULL;
                     }
                     headers[index] = (HeaderObject *) header;
-                    if (fread_unlocked(&headers[index]->descriptor_record, header_size, 1, self->input_file) != 1) {
+                    if (fread(&headers[index]->descriptor_record, header_size, 1, self->input_file) != 1) {
                         FILE_READ_ERROR;
                         Py_DECREF(list);
-                        funlockfile(self->input_file);
                         cleanup_headers(headers, i);
                         return NULL;
                     }
@@ -194,38 +186,35 @@ PyObject *Container_get_headers(const ContainerObject *self,
         fseek(self->input_file,
               descriptor_address * WORD_SIZE,
               SEEK_SET);
-        if (fread_unlocked(&header->identifier, descriptor_size, 1, self->input_file) != 1
+        if (fread(&header->identifier, descriptor_size, 1, self->input_file) != 1
             || memcmp(header->identifier, DESCRIPTOR_IDENTIFIER, WORD_SIZE) != 0) {
             FILE_READ_ERROR;
             PyErr_SetString(PyExc_IndexError, "identifier not found");
             Py_DECREF(list);
-            funlockfile(self->input_file);
             cleanup_headers(headers, entry_count);
             return NULL;
         }
 
-        header->section_identifiers = PyMem_Malloc(header->section_count * sizeof(int));
-        header->section_lengths = PyMem_Malloc(header->section_count * sizeof(long));
-        header->section_addresses = PyMem_Malloc(header->section_count * sizeof(long));
+        header->section_identifiers = PyMem_Malloc(header->section_count * sizeof(int32_t));
+        header->section_lengths = PyMem_Malloc(header->section_count * sizeof(int64_t));
+        header->section_addresses = PyMem_Malloc(header->section_count * sizeof(int64_t));
         if (!header->section_identifiers ||
             !header->section_lengths ||
             !header->section_addresses) {
             MEMORY_ALLOCATION_ERROR;
             Py_DECREF(list);
-            funlockfile(self->input_file);
             cleanup_headers(headers, entry_count);
             return NULL;
         }
 
-        if (fread_unlocked(header->section_identifiers, sizeof(int), header->section_count,
-                           self->input_file) != header->section_count
-            || fread_unlocked(header->section_lengths, sizeof(long), header->section_count,
-                              self->input_file) != header->section_count
-            || fread_unlocked(header->section_addresses, sizeof(long), header->section_count,
-                              self->input_file) != header->section_count) {
+        if (fread(header->section_identifiers, sizeof(int32_t), header->section_count,
+                  self->input_file) != header->section_count
+            || fread(header->section_lengths, sizeof(int64_t), header->section_count,
+                     self->input_file) != header->section_count
+            || fread(header->section_addresses, sizeof(int64_t), header->section_count,
+                     self->input_file) != header->section_count) {
             FILE_READ_ERROR;
             Py_DECREF(list);
-            funlockfile(self->input_file);
             cleanup_headers(headers, entry_count);
             return NULL;
         }
@@ -234,7 +223,6 @@ PyObject *Container_get_headers(const ContainerObject *self,
         headers[i] = NULL;
     }
 
-    funlockfile(self->input_file);
     return list;
 }
 
@@ -289,24 +277,21 @@ PyObject *Container_get_data(const ContainerObject *self,
         return NULL;
     }
 
-    flockfile(self->input_file);
     for (Py_ssize_t i = 0; i < entry_count; ++i) {
-        HeaderObject *header = (HeaderObject *) headers[i];
+        const HeaderObject *header = (HeaderObject *) headers[i];
         const Py_ssize_t descriptor_address = self->record_length * (header->descriptor_record - 1)
                                               + header->descriptor_word - 1;
         fseek(self->input_file,
               (descriptor_address + header->data_address - 1) * WORD_SIZE,
               SEEK_SET);
-        if (fread_unlocked(data + i * data_size,
-                           sizeof(float), header->data_size,
-                           self->input_file) != header->data_size) {
+        if (fread(data + i * data_size,
+                  sizeof(float), header->data_size,
+                  self->input_file) != header->data_size) {
             Py_DECREF(sequence);
             FILE_READ_ERROR;
-            funlockfile(self->input_file);
             return NULL;
         }
     }
-    funlockfile(self->input_file);
     Py_DECREF(sequence);
 
     const npy_intp dims[] = {entry_count, data_size};
@@ -349,7 +334,7 @@ PyObject *Container_get_sections(const ContainerObject *self,
         PyErr_SetString(PyExc_TypeError, "type has no ID");
         return NULL;
     }
-    const int id = PyLong_AsInt(element);
+    const int32_t id = PyLong_AsInt(element);
     if (PyErr_Occurred()) {
         return NULL;
     }
@@ -367,14 +352,12 @@ PyObject *Container_get_sections(const ContainerObject *self,
         return NULL;
     }
     PyObject **entries = PySequence_Fast_ITEMS(sequence);
-    flockfile(self->input_file);
 
     for (Py_ssize_t i = 0; i < entry_count; ++i) {
         PyObject *object = entries[i];
         if (!PyObject_TypeCheck(object, &HeaderType)) {
             Py_DECREF(sequence);
             Py_DECREF(list);
-            funlockfile(self->input_file);
             NO_HEADER_ERROR;
             return NULL;
         }
@@ -394,7 +377,6 @@ PyObject *Container_get_sections(const ContainerObject *self,
         if (!section) {
             Py_DECREF(sequence);
             Py_DECREF(list);
-            funlockfile(self->input_file);
             MEMORY_ALLOCATION_ERROR;
             return NULL;
         }
@@ -407,13 +389,11 @@ PyObject *Container_get_sections(const ContainerObject *self,
             Py_DECREF(sequence);
             Py_DECREF(list);
             Py_DECREF(section);
-            funlockfile(self->input_file);
             return NULL;
         }
         PyList_SET_ITEM(list, i, section);
     }
 
-    funlockfile(self->input_file);
     Py_DECREF(sequence);
     return list;
 }

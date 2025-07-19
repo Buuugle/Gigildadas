@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdint.h>
 #include <Python.h>
 
 #include "Utils.h"
@@ -10,34 +11,34 @@
 typedef struct HeaderObject {
     PyObject_HEAD
 
-    long descriptor_record;
-    int descriptor_word;
-    long number;
-    int version;
+    int64_t descriptor_record;
+    int32_t descriptor_word;
+    int64_t number;
+    int32_t version;
     char source[3 * WORD_SIZE];
     char line[3 * WORD_SIZE];
     char telescope[3 * WORD_SIZE];
-    int observation_date;
-    int reduction_date;
+    int32_t observation_date;
+    int32_t reduction_date;
     float lambda_offset;
     float beta_offset;
-    int coordinate_system; // code
-    int kind; // code
-    int quality; // code
+    int32_t coordinate_system; // code
+    int32_t kind; // code
+    int32_t quality; // code
     float position_angle;
-    long scan;
-    int sub_scan;
+    int64_t scan;
+    int32_t sub_scan;
 
     char identifier[WORD_SIZE];
-    int descriptor_version;
-    int section_count;
-    long entry_length;
-    long data_address;
-    long data_size;
-    long descriptor_number;
-    int *section_identifiers;
-    long *section_lengths;
-    long *section_addresses;
+    int32_t descriptor_version;
+    int32_t section_count;
+    int64_t entry_length;
+    int64_t data_address;
+    int64_t data_size;
+    int64_t descriptor_number;
+    int32_t *section_identifiers;
+    int64_t *section_lengths;
+    int64_t *section_addresses;
 } HeaderObject;
 
 #pragma pack()

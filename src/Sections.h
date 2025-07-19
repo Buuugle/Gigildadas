@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdint.h>
 #include <Python.h>
 
 #include "Utils.h"
@@ -31,9 +32,9 @@ typedef struct PositionSectionObject {
     PyObject_HEAD
 
     char source[3 * WORD_SIZE];
-    int coordinate_system; // code
+    int32_t coordinate_system; // code
     float equinox;
-    int projection_system; // code
+    int32_t projection_system; // code
     double center_lambda;
     double center_beta;
     double projection_angle;
@@ -46,7 +47,7 @@ typedef struct SpectroSectionObject {
 
     char line[3 * WORD_SIZE];
     double rest_frequency;
-    int channel_count;
+    int32_t channel_count;
     float reference_channel;
     float frequency_resolution;
     float frequency_offset;
@@ -54,7 +55,7 @@ typedef struct SpectroSectionObject {
     float velocity_offset;
     float blank;
     double image_frequency;
-    int velocity_type; // code
+    int32_t velocity_type; // code
     double doppler_correction;
 } SpectroSectionObject;
 
@@ -70,11 +71,11 @@ typedef struct PlotSectionObject {
 typedef struct SwitchSectionObject {
     PyObject_HEAD
 
-    int phase_count;
+    int32_t phase_count;
     double *frequency_offsets;
     float *times;
     float *weights;
-    int mode; // code
+    int32_t mode; // code
     float *lambda_offsets;
     float *beta_offsets;
 } SwitchSectionObject;
@@ -95,7 +96,7 @@ typedef struct CalibrationSectionObject {
     float image_opacity;
     float image_atmosphere_temperature;
     float receiver_temperature;
-    int mode; // code
+    int32_t mode; // code
     float factor;
     float site_elevation;
     float atmosphere_power;
@@ -111,7 +112,7 @@ typedef struct CalibrationSectionObject {
 
 typedef int (*section_read)(PyObject *, FILE *);
 
-section_read get_section_read(int id);
+section_read get_section_read(int32_t id);
 
 
 int GeneralSection_traverse(GeneralSectionObject *self,
