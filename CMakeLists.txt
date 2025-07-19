@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.31)
 project(Gigildadas C)
 set(CMAKE_C_STANDARD 17)
-
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
+
+if (APPLE)
+    set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64")
+endif()
 
 add_library(Container SHARED
         src/Module.c
