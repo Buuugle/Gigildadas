@@ -2,8 +2,13 @@ import gigildadas.container as gc
 import numpy as np
 import matplotlib.pyplot as plt
 from time import time
+from os import mkdir, path
 
 t = time()
+if not path.exists("spectra"):
+    mkdir("spectra")
+if not path.exists("maps"):
+    mkdir("maps")
 
 # Use "gigildadas" lib to read the header, data and spectro section of all the observations
 container = gc.Container()
