@@ -186,9 +186,14 @@ PyObject *Container_get_headers(const ContainerObject *self,
         fseek(self->input_file,
               descriptor_address * WORD_SIZE,
               SEEK_SET);
-        if (fread(&header->identifier, descriptor_size, 1, self->input_file) != 1
-            || memcmp(header->identifier, DESCRIPTOR_IDENTIFIER, WORD_SIZE) != 0) {
+        if (fread(&header->identifier, descriptor_size, 1, self->input_file) != 1) {
             FILE_READ_ERROR;
+            Py_DECREF(list);
+            cleanup_headers(headers, entry_count);
+            return NULL;
+        }
+
+        if (memcmp(header->identifier, DESCRIPTOR_IDENTIFIER, WORD_SIZE) != 0) {
             PyErr_SetString(PyExc_IndexError, "identifier not found");
             Py_DECREF(list);
             cleanup_headers(headers, entry_count);
