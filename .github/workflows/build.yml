@@ -2,7 +2,7 @@ name: Build Container Library
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, develop ]
   pull_request:
     branches: [ master ]
 
@@ -55,6 +55,12 @@ jobs:
           cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release
 
+      - name: Configure CMake (macOS - Add feature test macro)
+        if: runner.os == 'macOS'
+        run: |
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-D_GNU_SOURCE"
+
       - name: Configure CMake (Windows)
         if: runner.os == 'Windows'
         run: |
@@ -93,7 +99,7 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
 
     steps:
       - name: Download all artifacts
