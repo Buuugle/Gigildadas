@@ -170,6 +170,6 @@ class Container:
                         type: type[T]) -> list[T]:
         """
         Returns a list containing the sections of each header for the given type.
-        If the sections does not exists for an header, the list contains None at the header's index.
+        If the sections do not exist for a header, the list contains None at the header's index.
         """
         ...
